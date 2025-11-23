@@ -354,6 +354,105 @@ def delete_account():
             "data": None
         }), 500
 
+# 统计数据API：获取平台账号统计
+@app.route('/getPlatformStats', methods=['GET'])
+def get_platform_stats():
+    try:
+        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # 获取各平台账号数量统计
+            cursor.execute('''
+                SELECT type, COUNT(*) as count, SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as valid_count
+                FROM user_info
+                GROUP BY type
+            ''')
+            platform_stats = []
+            for row in cursor.fetchall():
+                platform_stats.append({
+                    "platform": row['type'],
+                    "total": row['count'],
+                    "valid": row['valid_count']
+                })
+            
+            # 获取总体统计
+            cursor.execute('''
+                SELECT COUNT(*) as total_accounts, 
+                       SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as valid_accounts,
+                       (SELECT COUNT(*) FROM file_records) as total_files
+                FROM user_info
+            ''')
+            overall_stats = cursor.fetchone()
+            
+            return jsonify({
+                "code": 200,
+                "msg": "success",
+                "data": {
+                    "platform_stats": platform_stats,
+                    "overall": {
+                        "total_accounts": overall_stats['total_accounts'],
+                        "valid_accounts": overall_stats['valid_accounts'],
+                        "total_files": overall_stats['total_files']
+                    }
+                }
+            }), 200
+    except Exception as e:
+        print(f"获取统计数据失败: {str(e)}")
+        return jsonify({
+            "code": 500,
+            "msg": f"获取统计数据失败: {str(e)}",
+            "data": None
+        }), 500
+
+# 统计数据API：获取文件统计
+@app.route('/getFileStats', methods=['GET'])
+def get_file_stats():
+    try:
+        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # 获取文件大小统计
+            cursor.execute('''
+                SELECT 
+                    COUNT(*) as total_files,
+                    SUM(filesize) as total_size,
+                    AVG(filesize) as avg_size,
+                    MAX(filesize) as max_size
+                FROM file_records
+            ''')
+            size_stats = cursor.fetchone()
+            
+            # 获取最近上传的文件
+            cursor.execute('''
+                SELECT * FROM file_records
+                ORDER BY id DESC
+                LIMIT 10
+            ''')
+            recent_files = [dict(row) for row in cursor.fetchall()]
+            
+            return jsonify({
+                "code": 200,
+                "msg": "success",
+                "data": {
+                    "size_stats": {
+                        "total_files": size_stats['total_files'],
+                        "total_size_mb": round(float(size_stats['total_size']), 2),
+                        "avg_size_mb": round(float(size_stats['avg_size']), 2),
+                        "max_size_mb": round(float(size_stats['max_size']), 2)
+                    },
+                    "recent_files": recent_files
+                }
+            }), 200
+    except Exception as e:
+        print(f"获取文件统计数据失败: {str(e)}")
+        return jsonify({
+            "code": 500,
+            "msg": f"获取文件统计数据失败: {str(e)}",
+            "data": None
+        }), 500
+
 
 # SSE 登录接口
 @app.route('/login')
