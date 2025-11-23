@@ -257,6 +257,7 @@
             class="account-dialog"
           >
             <div class="account-dialog-content">
+              <el-checkbox v-model="selectAllAccounts" @change="handleSelectAllChange" class="select-all-checkbox">全选</el-checkbox>
               <el-checkbox-group v-model="tempSelectedAccounts">
                 <div class="account-list">
                   <el-checkbox
@@ -266,7 +267,7 @@
                     class="account-item"
                   >
                     <div class="account-info">
-                      <span class="account-name">{{ account.name }}</span>                      
+                      <span class="account-name">{{ account.name }}</span>                       
                     </div>
                   </el-checkbox>
                 </div>
@@ -588,6 +589,7 @@ const tabs = reactive([
 const accountDialogVisible = ref(false)
 const tempSelectedAccounts = ref([])
 const currentTab = ref(null)
+const selectAllAccounts = ref(false)
 
 // 获取账号状态管理
 const accountStore = useAccountStore()
@@ -742,7 +744,20 @@ const confirmTopicSelection = () => {
 const openAccountDialog = (tab) => {
   currentTab.value = tab
   tempSelectedAccounts.value = [...tab.selectedAccounts]
+  // 检查是否已经全选
+  selectAllAccounts.value = tempSelectedAccounts.value.length === availableAccounts.value.length && availableAccounts.value.length > 0
   accountDialogVisible.value = true
+}
+
+// 处理全选/取消全选
+const handleSelectAllChange = (checked) => {
+  if (checked) {
+    // 全选：将所有可用账号的ID添加到tempSelectedAccounts
+    tempSelectedAccounts.value = availableAccounts.value.map(account => account.id)
+  } else {
+    // 取消全选：清空tempSelectedAccounts
+    tempSelectedAccounts.value = []
+  }
 }
 
 // 确认账号选择

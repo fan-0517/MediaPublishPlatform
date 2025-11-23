@@ -4,17 +4,18 @@
       <el-aside :width="isCollapse ? '64px' : '200px'">
         <div class="sidebar">
           <div class="logo">
-            <img v-show="isCollapse" src="/vite.svg" alt="Logo" class="logo-img">
-            <h2 v-show="!isCollapse">自媒体自动化运营系统</h2>
+            <img v-show="isCollapse" src="@/assets/yun.svg" alt="Logo" class="logo-img">
+            <img v-show="!isCollapse" src="@/assets/yun.svg" alt="Logo" class="logo-img">
+            <h2 v-show="!isCollapse">自媒体运营系统</h2>
           </div>
           <el-menu
             :router="true"
             :default-active="activeMenu"
             :collapse="isCollapse"
             class="sidebar-menu"
-            background-color="#001529"
+            background-color="#1C9399"
             text-color="#fff"
-            active-text-color="#409EFF"
+            active-text-color="#C1ECF0"
           >
             <el-menu-item index="/">
               <el-icon><HomeFilled /></el-icon>
@@ -67,7 +68,7 @@ import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { 
   HomeFilled, User, Monitor, DataAnalysis, 
-  Fold, Picture, Upload
+  Picture, Upload, Fold
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -98,7 +99,7 @@ const toggleSidebar = () => {
 }
 
 .el-aside {
-  background-color: #001529;
+  background-color: #1C9399;
   color: #fff;
   height: 100vh;
   overflow: hidden;
@@ -110,12 +111,12 @@ const toggleSidebar = () => {
     height: 100%;
     
     .logo {
-      height: 60px;
-      padding: 0 16px;
-      display: flex;
-      align-items: center;
-      background-color: #002140;
-      overflow: hidden;
+        height: 60px;
+        padding: 0 16px;
+        display: flex;
+        align-items: center;
+        background-color: #1C9399;
+        overflow: hidden;
       
       .logo-img {
         width: 32px;
@@ -144,6 +145,16 @@ const toggleSidebar = () => {
           margin-right: 10px;
           font-size: 18px;
         }
+      }
+      
+      .el-menu-item:hover {
+        background-color: #C1ECF0;
+        color: #1C9399;
+      }
+      
+      .el-menu-item.is-active {
+        background-color: #C1ECF0;
+        color: #1C9399;
       }
     }
   }
