@@ -1098,8 +1098,8 @@ const batchPublish = async () => {
            }
            
            &.active {
-             background-color: #409eff;
-             border-color: #409eff;
+             background-color: #1C9399;
+             border-color: #1C9399;
              color: #fff;
              
              .close-icon {
@@ -1130,7 +1130,35 @@ const batchPublish = async () => {
         gap: 10px;
         flex-shrink: 0;
         
-        .add-tab-btn,
+        .add-tab-btn {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          height: 32px;
+          padding: 6px 12px;
+          font-size: 14px;
+          white-space: nowrap;
+          width: 10rem;
+          border-radius: 4px;
+          
+          // 正常状态样式
+          background-color: #1C9399;
+          border-color: #1C9399;
+          color: #FFFFFF;
+          
+          &:hover {
+            background-color: #48D1CC;
+            border-color: #48D1CC;
+            color: #FFFFFF;
+          }
+          
+          &:active {
+            background-color: #166B6F;
+            border-color: #166B6F;
+            color: #FFFFFF;
+          }
+        }
+
         .batch-publish-btn {
           display: flex;
           align-items: center;
@@ -1139,6 +1167,25 @@ const batchPublish = async () => {
           padding: 6px 12px;
           font-size: 14px;
           white-space: nowrap;
+          width: 10rem;
+          border-radius: 4px;
+          
+          // 正常状态样式
+          background-color: transparent;
+          border-color: #1C9399;
+          color: #1C9399;
+          
+          &:hover {
+            background-color: #1C9399;
+            border-color: #1C9399;
+            color: #FFFFFF;
+          }
+          
+          &:active {
+            background-color: #166B6F;
+            border-color: #166B6F;
+            color: #FFFFFF;
+          }
         }
       }
     }
@@ -1232,6 +1279,67 @@ const batchPublish = async () => {
           margin-bottom: 30px;
         }
 
+        // 平台单选按钮样式
+        .platform-radios {
+          // 使用deep选择器穿透Element Plus的样式
+          :deep(.platform-radio) {
+            // 未选中状态的基础边框色
+            &:not(.is-checked) {
+              .el-radio__input .el-radio__inner {
+                border-color: #1C9399 !important;
+              }
+            }
+            
+            // 鼠标悬浮状态 - 只改变文字颜色，不改变背景色
+            &:hover:not(.is-checked) {
+              .el-radio__label {
+                color: #1C9399 !important;
+              }
+            }
+            
+            &.is-checked {
+              // 选中状态的背景色与上传视频按钮一致
+              .el-radio__input.is-checked .el-radio__inner {
+                background-color: #1C9399 !important;
+                border-color: #1C9399 !important;
+              }
+              
+              // 选中状态的文本颜色
+              .el-radio__label {
+                color: #1C9399 !important;
+                font-weight: 500 !important;
+              }
+            }
+          }
+          
+          // 覆盖所有平台单选按钮的选中状态
+          :deep(.el-radio.is-checked) {
+            .el-radio__input.is-checked .el-radio__inner {
+              background-color: #1C9399 !important;
+              border-color: #1C9399 !important;
+            }
+            
+            .el-radio__label {
+              color: #1C9399 !important;
+              font-weight: 500 !important;
+            }
+          }
+          
+          // 覆盖所有平台单选按钮的未选中状态基础边框色
+          :deep(.el-radio:not(.is-checked)) {
+            .el-radio__input .el-radio__inner {
+              border-color: #1C9399 !important;
+            }
+            
+            // 悬浮状态 - 只改变文字颜色
+            &:hover {
+              .el-radio__label {
+                color: #1C9399 !important;
+              }
+            }
+          }
+        }
+
         .product-section {
           .product-name-input,
           .product-link-input {
@@ -1250,6 +1358,36 @@ const batchPublish = async () => {
         
         .account-input {
           max-width: 400px;
+        }
+        
+        // 选择账号按钮 - 与批量发布按钮样式一致
+        .el-button.el-button--primary.is-plain.select-account-btn {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          height: 32px;
+          padding: 6px 12px;
+          font-size: 14px;
+          white-space: nowrap;
+          width: 10rem;
+          border-radius: 4px;
+          
+          // 正常状态样式 - 与批量发布按钮一致
+           background-color: #E8F4F5 !important;
+           border-color: #8EC9CC !important;
+           color: #1C9399 !important;
+          
+          &:hover {
+            background-color: #1C9399 !important;
+            border-color: #1C9399 !important;
+            color: #FFFFFF !important;
+          }
+          
+          &:active {
+            background-color: #166B6F !important;
+            border-color: #166B6F !important;
+            color: #FFFFFF !important;
+          }
         }
         
         .platform-buttons {
@@ -1284,7 +1422,47 @@ const batchPublish = async () => {
           
           .select-topic-btn {
             align-self: flex-start;
+            height: 32px;
+            width: 10rem;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: #e8f4f5;
+            border-color: #8ec9cc;
+            color: #1C9399;
+            
+            &:hover {
+              background-color: #1C9399;
+              border-color: #1C9399;
+              color: #FFFFFF;
+            }
+            
+            &:active {
+              background-color: #7bb5b8;
+              border-color: #7bb5b8;
+              color: #FFFFFF;
+            }
           }
+          
+          // 添加话题按钮 - 覆盖Element Plus默认样式
+          .el-button.select-topic-btn {
+            background-color: #e8f4f5 !important;
+            border-color: #8ec9cc !important;
+            color: #1C9399 !important;
+            
+            &:hover {
+              background-color: #1C9399 !important;
+              border-color: #1C9399 !important;
+              color: #FFFFFF !important;
+            }
+            
+            &:active {
+              background-color: #7bb5b8 !important;
+              border-color: #7bb5b8 !important;
+              color: #FFFFFF !important;
+            }
+          }
+          
+
         }
         
         .schedule-controls {
@@ -1330,6 +1508,50 @@ const batchPublish = async () => {
           margin-top: 30px;
           padding-top: 20px;
           border-top: 1px solid #ebeef5;
+          
+          .el-button {
+            width: 10rem;
+            height: 32px;
+            border-radius: 4px;
+            
+            // 发布按钮样式
+            &.el-button--primary {
+              background-color: #1C9399;
+              border-color: #1C9399;
+              color: #FFFFFF;
+              
+              &:hover {
+                background-color: #48D1CC;
+                border-color: #48D1CC;
+                color: #FFFFFF;
+              }
+              
+              &:active {
+                background-color: #166B6F;
+                border-color: #166B6F;
+                color: #FFFFFF;
+              }
+            }
+            
+            // 取消/重置按钮样式
+            &:not(.el-button--primary) {
+              background-color: #e8f4f5;
+              border-color: #8ec9cc;
+              color: #1C9399;
+              
+              &:hover {
+                background-color: #1C9399;
+                border-color: #1C9399;
+                color: #FFFFFF;
+              }
+              
+              &:active {
+                background-color: #7bb5b8;
+                border-color: #7bb5b8;
+                color: #FFFFFF;
+              }
+            }
+          }
         }
 
         .draft-section {
@@ -1438,5 +1660,62 @@ const batchPublish = async () => {
       gap: 12px;
     }
   }
+}
+
+// 上传视频按钮样式
+.upload-options .upload-btn {
+  width: 10rem;
+  border-radius: 4px;
+  background-color: #1C9399 !important;
+  border-color: #1C9399 !important;
+  color: #FFFFFF !important;
+}
+.upload-options .upload-btn:hover {
+  background-color: #48D1CC !important;
+  border-color: #48D1CC !important;
+  color: #FFFFFF !important;
+}
+.upload-options .upload-btn:active {
+  background-color: #166B6F !important;
+  border-color: #166B6F !important;
+  color: #FFFFFF !important;
+}
+
+// 顶部Tab按钮样式
+.tab-actions .add-tab-btn {
+  width: 10rem;
+  border-radius: 4px;
+  background-color: #1C9399 !important;
+  border-color: #1C9399 !important;
+  color: #FFFFFF !important;
+}
+.tab-actions .add-tab-btn:hover {
+  background-color: #48D1CC !important;
+  border-color: #48D1CC !important;
+  color: #FFFFFF !important;
+}
+.tab-actions .add-tab-btn:active {
+  background-color: #166B6F !important;
+  border-color: #166B6F !important;
+  color: #FFFFFF !important;
+}
+
+// 批量发布按钮样式 - 新配色方案
+.tab-actions .batch-publish-btn {
+  width: 10rem;
+  border-radius: 4px;
+  background-color: #e8f4f5 !important;
+  border-color: #8ec9cc !important;
+  color: #1C9399 !important;
+}
+.tab-actions .batch-publish-btn:hover {
+  background-color: #1C9399 !important;
+  border-color: #1C9399 !important;
+  color: #FFFFFF !important;
+}
+.tab-actions .batch-publish-btn:active {
+  background-color: #7bb5b8 !important;
+  border-color: #7bb5b8 !important;
+  color: #FFFFFF !important;
 }
 </style>

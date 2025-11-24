@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <el-container>
-      <el-aside :width="isCollapse ? '64px' : '200px'">
+      <el-aside :width="isCollapse ? '64px' : '230px'">
         <div class="sidebar">
           <div class="logo">
             <img v-show="isCollapse" src="@/assets/yun.svg" alt="Logo" class="logo-img">
@@ -126,8 +126,9 @@ const toggleSidebar = () => {
       
       h2 {
         color: #fff;
-        font-size: 16px;
-        font-weight: 600;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 1px;
         white-space: nowrap;
         margin: 0;
       }
@@ -140,10 +141,11 @@ const toggleSidebar = () => {
       .el-menu-item {
         display: flex;
         align-items: center;
+        font-size: 15px;
         
         .el-icon {
           margin-right: 10px;
-          font-size: 18px;
+          font-size: 20px;
         }
       }
       

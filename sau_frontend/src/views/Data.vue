@@ -3,8 +3,8 @@
     <el-card class="page-card">
       <template #header>
         <div class="card-header">
-          <span>数据分析</span>
-          <el-button type="primary" size="small" @click="refreshData">
+          <span class="card-title">数据分析</span>
+          <el-button type="primary" @click="refreshData">
             <el-icon><Refresh /></el-icon>刷新数据
           </el-button>
         </div>
@@ -173,8 +173,32 @@ const refreshData = () => {
 
 .card-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
+  
+  .card-title {
+    flex: 1;
+  }
+  
+  /* 刷新数据按钮*/
+  .el-button--primary {
+    background-color: #1C9399 !important;
+    border-color: #1C9399 !important;
+    color: #FFFFFF !important;
+    margin-left: auto;
+    
+    &:hover {
+      background-color: #48D1CC !important;
+      border-color: #48D1CC !important;
+      color: #FFFFFF !important;
+    }
+    
+    &:active {
+      background-color: #166B6F !important;
+      border-color: #166B6F !important;
+      color: #FFFFFF !important;
+    }
+  }
 }
 
 .data-content {
