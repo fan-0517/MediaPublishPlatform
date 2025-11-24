@@ -372,7 +372,7 @@ async def get_tiktok_cookie(id, status_queue):
                 cursor.execute('''
                                     INSERT INTO user_info (type, filePath, userName, status)
                                     VALUES (?, ?, ?, ?)
-                                    ''', (5, f"{uuid_v1}.json", "TikTok_User", 1))
+                                    ''', (5, f"{uuid_v1}.json", id, 1))
                 conn.commit()
                 tiktok_logger.success("✅ TikTok 用户状态已记录")
             

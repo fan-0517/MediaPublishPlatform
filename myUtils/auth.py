@@ -32,7 +32,7 @@ async def cookie_auth_douyin(account_file):
                 douyin_logger.error("[+] cookie 失效，需要扫码登录")
                 return False
             except:
-                douyin_logger.success("[+]  cookie 有效")
+                douyin_logger.success("[douyin]  cookie 有效")
                 return True
         except:
             douyin_logger.error("[+] 等待5秒 cookie 失效")
@@ -55,7 +55,7 @@ async def cookie_auth_tencent(account_file):
             tencent_logger.error("[+] 等待5秒 cookie 失效")
             return False
         except:
-            tencent_logger.success("[+] cookie 有效")
+            tencent_logger.success("[tencent] cookie 有效")
             return True
 
 
@@ -74,7 +74,7 @@ async def cookie_auth_ks(account_file):
             kuaishou_logger.info("[+] 等待5秒 cookie 失效")
             return False
         except:
-            kuaishou_logger.success("[+] cookie 有效")
+            kuaishou_logger.success("[ks] cookie 有效")
             return True
 
 
@@ -99,7 +99,7 @@ async def cookie_auth_xhs(account_file):
             print("[+] 等待5秒 cookie 失效")
             return False
         else:
-            print("[+] cookie 有效")
+            print("[xhs] cookie 有效")
             return True
 
 
@@ -121,7 +121,7 @@ async def cookie_auth_tiktok(account_file):
                 tiktok_logger.error("[+] TikTok cookie 失效，需要登录")
                 return False
             except:
-                tiktok_logger.success("[+] TikTok cookie 有效")
+                tiktok_logger.success("[tiktok] cookie 有效")
                 return True
         except:
             tiktok_logger.error("[+] 等待 TikTok 页面超时，cookie 可能失效")
