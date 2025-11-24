@@ -114,10 +114,10 @@ async def cookie_auth_tiktok(account_file):
         await page.goto("https://www.tiktok.com/creator-center/upload")
         try:
             # 等待页面加载完成
-            await page.wait_for_url("https://www.tiktok.com/creator-center/upload", timeout=10000)
+            await page.wait_for_url("https://www.tiktok.com/creator-center/upload", timeout=60000)
             # 检查是否需要登录
             try:
-                await page.get_by_text("Log in", timeout=5000)
+                await page.get_by_text("Log in", timeout=30000)
                 tiktok_logger.error("[+] TikTok cookie 失效，需要登录")
                 return False
             except:

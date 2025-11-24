@@ -328,7 +328,7 @@ async def get_tiktok_cookie(id, status_queue):
         # 等待二维码出现
         try:
             # 等待登录二维码出现
-            await page.wait_for_selector('[data-e2e="qrcode"]', timeout=10000)
+            await page.wait_for_selector('[data-e2e="qrcode"]', timeout=60000)
             img_locator = page.locator('[data-e2e="qrcode"]')
             # 获取二维码图片src
             src = await img_locator.get_attribute("src")
@@ -341,7 +341,7 @@ async def get_tiktok_cookie(id, status_queue):
             
             try:
                 # 等待 URL 变化或超时
-                await asyncio.wait_for(url_changed_event.wait(), timeout=200)
+                await asyncio.wait_for(url_changed_event.wait(), timeout=20000)
                 print("✅ TikTok 登录成功，页面跳转")
             except asyncio.TimeoutError:
                 tiktok_logger.error("[+] TikTok 登录超时")
