@@ -1,4 +1,7 @@
 import asyncio
+import os
+import logging
+from datetime import datetime
 from pathlib import Path
 
 from conf import BASE_DIR
@@ -9,6 +12,8 @@ from uploader.tencent_uploader.main import TencentVideo
 from uploader.xiaohongshu_uploader.main import XiaoHongShuVideo
 from utils.constant import TencentZoneTypes
 from utils.files_times import generate_schedule_time_next_day
+
+logger = logging.getLogger(__name__)
 
 
 def post_video_tencent(title,files,tags,account_file,category=TencentZoneTypes.LIFESTYLE.value,enableTimer=False,videos_per_day = 1, daily_times=None,start_days = 0, is_draft=False):
@@ -89,104 +94,75 @@ def post_video_xhs(title,files,tags,account_file,category=TencentZoneTypes.LIFES
 
 
 
-def post_video_TikTok(title, file_list, tags, account_list, schedule=None, schedule_date=None, schedule_time=None, thumbnail=None, enableTimer=False, videos_per_day=1, daily_times=None, start_days=0):
+def post_video_TikTok(title, files, tags, account_file, category=TencentZoneTypes.LIFESTYLE.value, enableTimer=False, videos_per_day=1, daily_times=None, start_days=0, thumbnail_path=''):
+    """
+    发布视频到TikTok平台
+    
+    参数:
+        title: 视频标题
+        files: 视频文件列表
+        tags: 视频标签
+        account_file: 账号cookie文件列表
+        category: 视频分类（默认LIFESTYLE）
+        enableTimer: 是否启用定时发布
+        videos_per_day: 每天发布视频数量
+        daily_times: 每天发布时间点列表
+        start_days: 开始发布的天数偏移
+        thumbnail_path: 封面图片路径（可选）
+    """
     try:
-        # 批量发布模式（带enableTimer参数）
-        if enableTimer is not None:
-            # 生成发布时间列表
-            if enableTimer:
-                publish_datetimes = generate_schedule_time_next_day(len(file_list), videos_per_day, daily_times, start_days)
-            else:
-                publish_datetimes = [0] * len(file_list)
-            
-            for index, file in enumerate(file_list):
-                for account in account_list:
-                    file_path = os.path.join("upload", file)
-                    account_file = os.path.join("cookies", "tk_uploader", f"{account}.json")
-                    
-                    # 检查账号cookie是否有效
-                    if not os.path.exists(account_file):
-                        logger.error(f"账号cookie文件不存在: {account_file}")
-                        continue
-                    
-                    # 设置封面文件
-                    thumbnail_path = None
-                    if os.path.exists(file_path.replace('.mp4', '.png')):
-                        thumbnail_path = file_path.replace('.mp4', '.png')
-                    
-                    # 初始化TikTok视频上传类
-                    app = TiktokVideo(title, file_path, tags, publish_datetimes[index], account_file, thumbnail_path)
-                    try:
-                        # 执行上传
-                        asyncio.run(app.main())
-                        logger.info(f"TikTok视频发布成功: {file} - {account}")
-                    except Exception as e:
-                        logger.error(f"TikTok视频发布失败: {str(e)}")
-        # 单视频发布模式（带schedule参数）
+        # 生成文件的完整路径
+        account_file = [Path(BASE_DIR / "cookiesFile" / file) for file in account_file]
+        files = [Path(BASE_DIR / "videoFile" / file) for file in files]
+        
+        # 生成发布时间
+        if enableTimer:
+            publish_datetimes = generate_schedule_time_next_day(len(files), videos_per_day, daily_times, start_days)
         else:
-            # 构建发布时间
-            schedule_datetime = 0
-            if schedule == 1:
-                schedule_datetime = datetime.strptime(f"{schedule_date} {schedule_time}", "%Y-%m-%d %H:%M")
-            
-            result_list = []
-            for file in file_list:
-                for account in account_list:
-                    file_path = os.path.join("upload", file)
-                    account_file = os.path.join("cookies", "tk_uploader", f"{account}.json")
-                    
-                    # 检查账号cookie是否有效
-                    if not os.path.exists(account_file):
-                        result_list.append({
-                            'account': account,
-                            'file': file,
-                            'status': 'error',
-                            'message': '账号cookie文件不存在'
-                        })
-                        continue
-                    
-                    # 设置封面文件
-                    thumbnail_path = None
-                    if thumbnail and os.path.exists(os.path.join("upload", thumbnail)):
-                        thumbnail_path = os.path.join("upload", thumbnail)
-                    elif os.path.exists(file_path.replace('.mp4', '.png')):
-                        thumbnail_path = file_path.replace('.mp4', '.png')
-                    
-                    # 初始化TikTok视频上传类
-                    app = TiktokVideo(title, file_path, tags, schedule_datetime, account_file, thumbnail_path)
-                    try:
-                        # 执行上传
-                        asyncio.run(app.main())
-                        result_list.append({
-                            'account': account,
-                            'file': file,
-                            'status': 'success',
-                            'message': '视频发布成功'
-                        })
-                    except Exception as e:
-                        logger.error(f"TikTok视频发布失败: {str(e)}")
-                        result_list.append({
-                            'account': account,
-                            'file': file,
-                            'status': 'error',
-                            'message': f'发布失败: {str(e)}'
-                        })
-            
-            return {
-                'status': 'success',
-                'message': '发布任务完成',
-                'data': result_list
-            }
+            publish_datetimes = [0 for i in range(len(files))]
+        
+        # 遍历文件和账号进行发布
+        for index, file in enumerate(files):
+            for cookie in account_file:
+                # 打印发布信息
+                logger.info(f"文件路径: {str(file)}")
+                logger.info(f"视频文件名: {file.name}")
+                logger.info(f"标题: {title}")
+                logger.info(f"标签: {tags}")
+                
+                # 检查cookie文件是否存在
+                if not cookie.exists():
+                    logger.error(f"TikTok账号cookie文件不存在: {str(cookie)}")
+                    continue
+                
+                # 处理封面图片
+                final_thumbnail_path = None
+                if thumbnail_path:
+                    # 如果提供了封面路径，使用该路径
+                    final_thumbnail_path = Path(BASE_DIR / "videoFile" / thumbnail_path)
+                    if not final_thumbnail_path.exists():
+                        logger.warning(f"指定的封面文件不存在: {str(final_thumbnail_path)}")
+                        final_thumbnail_path = None
+                
+                # 如果没有提供封面或封面不存在，尝试使用与视频同名的png文件
+                if not final_thumbnail_path:
+                    auto_thumbnail = file.parent / (file.stem + '.png')
+                    if auto_thumbnail.exists():
+                        final_thumbnail_path = auto_thumbnail
+                        logger.info(f"使用自动检测到的封面文件: {str(final_thumbnail_path)}")
+                
+                # 初始化TikTok视频上传类并执行上传
+                try:
+                    app = TiktokVideo(title, str(file), tags, publish_datetimes[index], str(cookie), str(final_thumbnail_path) if final_thumbnail_path else None)
+                    asyncio.run(app.main(), debug=False)
+                    logger.info(f"TikTok视频发布成功: {file.name}")
+                except Exception as e:
+                    logger.error(f"TikTok视频发布失败: {str(e)}")
+                    # 继续尝试其他账号或文件，不中断整个流程
     except Exception as e:
-        logger.error(f"TikTok视频发布主函数异常: {str(e)}")
-        if enableTimer is not None:
-            # 批量模式不需要返回值
-            pass
-        else:
-            return {
-                'status': 'error',
-                'message': f'发布过程异常: {str(e)}'
-            }
+        logger.error(f"TikTok视频发布过程中发生异常: {str(e)}")
+        # 抛出异常，让调用方处理
+        raise
 
 # post_video("333",["demo.mp4"],"d","d")
 # post_video_DouYin("333",["demo.mp4"],"d","d")

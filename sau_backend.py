@@ -11,7 +11,7 @@ from myUtils.auth import check_cookie, cookie_auth_tiktok
 from flask import Flask, request, jsonify, Response, render_template, send_from_directory
 from conf import BASE_DIR
 from myUtils.login import douyin_cookie_gen, get_tencent_cookie, get_ks_cookie, xiaohongshu_cookie_gen, get_tiktok_cookie
-from myUtils.postVideo import post_video_tencent, post_video_DouYin, post_video_ks, post_video_xhs
+from myUtils.postVideo import post_video_tencent, post_video_DouYin, post_video_ks, post_video_xhs, post_video_TikTok
 
 active_queues = {}
 app = Flask(__name__)
@@ -527,9 +527,8 @@ def postVideo():
             post_video_ks(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
                       start_days)
         case 5:
-                print(f'[+] Publishing to TikTok')
-                # TikTok
-                post_video_TikTok(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+            # TikTok
+            post_video_TikTok(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
                       start_days, thumbnail_path)
     # 返回响应给客户端
     return jsonify(
