@@ -152,8 +152,8 @@ class TiktokVideo(object):
         # context = await set_init_script(context)
         page = await context.new_page()
 
-        # change language to eng first
-        await self.change_language(page)
+        # change language to eng first （第一次需要改语言，方便用英文查找控件。后面就不需要改了，注释掉可以提高效率）
+        # await self.change_language(page)
         # 打印日志
         tiktok_logger.info(f"[+]Changing language to english.")
         await page.goto("https://www.tiktok.com/tiktokstudio/upload")
@@ -285,11 +285,18 @@ class TiktokVideo(object):
     async def detect_upload_status(self, page):
         while True:
             try:
-                await page.wait_for_timeout(10000)  # 等待10秒检查时间
                 # if await self.locator_base.locator('div.btn-post > button').get_attribute("disabled") is None:
                 if await self.locator_base.locator(
                         'div.button-group > button >> text=Post').get_attribute("disabled") is None:
                     tiktok_logger.info("  [-]video uploaded.")
+                
+                    try:
+                        # 等待弹窗出现
+                        await self.locator_base.locator('div[role="dialog"] button >> text=Post now').click()
+                        tiktok_logger.info("  [-]已点击Post now按钮")
+                    except Exception:
+                        tiktok_logger.info("  [-]未检测到版权检查弹窗")
+                    
                     break
                 else:
                     tiktok_logger.info("  [-] video uploading...")
