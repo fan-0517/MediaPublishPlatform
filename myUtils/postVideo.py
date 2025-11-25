@@ -142,11 +142,19 @@ def post_video_TikTok(title, files, tags, account_file, category=TencentZoneType
                     # 使用与参考示例相同的方式处理标题和标签
                     # 如果没有提供标题和标签，则从文件名获取
                     if not title or not tags:
-                        file_title, file_tags = get_title_and_hashtags(str(file))
-                        if not title:
-                            title = file_title
-                        if not tags:
-                            tags = file_tags
+                        try:
+                            file_title, file_tags = get_title_and_hashtags(str(file))
+                            if not title:
+                                title = file_title
+                            if not tags:
+                                tags = file_tags
+                        except Exception as e:
+                            logger.warning(f"无法从文件获取标题和标签: {str(e)}")
+                            # 如果获取失败，使用默认值
+                            if not title:
+                                title = file.name.replace('.mp4', '').replace('_', ' ')
+                            if not tags:
+                                tags = []
                     
                     # 处理封面图片（与参考示例保持一致）
                     final_thumbnail_path = None

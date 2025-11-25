@@ -157,10 +157,10 @@ class TiktokVideo(object):
         await page.goto("https://www.tiktok.com/tiktokstudio/upload")
         tiktok_logger.info(f'[+]Uploading-------{self.title}.mp4')
 
-        await page.wait_for_url("https://www.tiktok.com/tiktokstudio/upload", timeout=10000)
+        await page.wait_for_url("https://www.tiktok.com/tiktokstudio/upload", timeout=30000)
 
         try:
-            await page.wait_for_selector('iframe[data-tt="Upload_index_iframe"], div.upload-container', timeout=10000)
+            await page.wait_for_selector('iframe[data-tt="Upload_index_iframe"], div.upload-container', timeout=30000)
             tiktok_logger.info("Either iframe or div appeared.")
         except Exception as e:
             tiktok_logger.error("Neither iframe nor div appeared within the timeout.")
@@ -261,7 +261,7 @@ class TiktokVideo(object):
                 if await publish_button.count():
                     await publish_button.click()
 
-                await page.wait_for_url("https://www.tiktok.com/tiktokstudio/content",  timeout=3000)
+                await page.wait_for_url("https://www.tiktok.com/tiktokstudio/content",  timeout=60000)
                 tiktok_logger.success("  [-] video published success")
                 break
             except Exception as e:
