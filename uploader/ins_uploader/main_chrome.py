@@ -397,91 +397,21 @@ class InstagramVideo(object):
             page: playwright页面对象
         """
         try:
-            # 根据Meta Business Suite截图，使用正确的上传按钮选择器
-            upload_buttons = [
-                # 精确匹配实际元素：div[role="button"] 包含 "Add photo/video" 文本
-                'div[role="button"]:has-text("Add photo/video")',
-                # 其他可能的文本变体
-                'div[role="button"]:has-text("Add photo")',
-                'div[role="button"]:has-text("Add video")',
-                'div[role="button"]:has-text("Upload photo/video")',
-                'div[role="button"]:has-text("Upload photo")',
-                'div[role="button"]:has-text("Upload video")',
-                # 兼容传统button元素
-                'button:has-text("Add photo/video")',
-                'button:has-text("Add photo")',
-                'button:has-text("Add video")',
-                'button:has-text("Upload photo/video")',
-                'button:has-text("Upload photo")',
-                'button:has-text("Upload video")',
-                # 基于aria-label的选择器（同时支持div和button）
-                '[role="button"][aria-label="Add photo/video"]',
-                '[role="button"][aria-label="Add photo"]',
-                '[role="button"][aria-label="Add video"]',
-                'button[aria-label="Add photo/video"]',
-                'button[aria-label="Add photo"]',
-                'button[aria-label="Add video"]',
-                # 基于data-testid的选择器（同时支持div和button）
-                '[role="button"][data-testid="add-photo-video-button"]',
-                '[role="button"][data-testid="upload-photo-video-button"]',
-                'button[data-testid="add-photo-video-button"]',
-                'button[data-testid="upload-photo-video-button"]',
-                # 基于类名的选择器（同时支持div和button）
-                '[role="button"][class*="add-photo"]',
-                '[role="button"][class*="add-video"]',
-                '[role="button"][class*="upload-photo"]',
-                '[role="button"][class*="upload-video"]',
-                'button[class*="add-photo"]',
-                'button[class*="add-video"]',
-                'button[class*="upload-photo"]',
-                'button[class*="upload-video"]',
-                # 直接的文件输入框（作为后备）
-                'input[type="file"]'
-            ]
+            # 根据日志中的精确选择器简化
+            upload_selector = 'div[role="button"]:has-text("Add photo/video")'
             
-            upload_element = None
-            found_selector = ""
+            upload_element = self.locator_base.locator(upload_selector)
+            await upload_element.wait_for(state='visible')
             
-            # 遍历所有选择器，查找可用的上传元素
-            for selector in upload_buttons:
-                count = await self.locator_base.locator(selector).count()
-                if count > 0:
-                    upload_element = self.locator_base.locator(selector)
-                    found_selector = selector
-                    break
+            instagram_logger.info(f"[+] 找到上传按钮，选择器: {upload_selector}")
             
-            if not upload_element:
-                # 如果没有找到，尝试查找所有button元素并打印，用于调试
-                all_buttons = await self.locator_base.locator('button').all()
-                button_texts = []
-                for btn in all_buttons:
-                    text = await btn.text_content()
-                    if text:
-                        button_texts.append(text.strip())
-                instagram_logger.warning(f"[+] 未找到上传按钮，页面上的所有按钮文本: {button_texts}")
-                # 抛出异常，让调用者处理
-                raise Exception("未找到上传按钮")
-            
-            instagram_logger.info(f"[+] 找到上传按钮，选择器: {found_selector}")
-            
-            # 根据元素类型执行不同的上传操作
-            element_tag = await upload_element.evaluate('el => el.tagName')
-            
-            if element_tag == 'INPUT' and await upload_element.evaluate('el => el.type') == 'file':
-                # 直接的文件输入框
-                await upload_element.wait_for(state='visible')
-                await upload_element.set_input_files(self.file_path)
-                instagram_logger.info("[+] 直接设置文件到input[type='file']")
-            else:
-                # 上传按钮，需要点击触发文件选择器
-                await upload_element.wait_for(state='visible')
-                async with page.expect_file_chooser() as fc_info:
-                    await upload_element.click()
-                    instagram_logger.info("[+] 点击上传按钮，等待文件选择器")
-                file_chooser = await fc_info.value
-                await file_chooser.set_files(self.file_path)
-                instagram_logger.info("[+] 通过文件选择器设置文件")
-            
+            # 上传按钮，需要点击触发文件选择器
+            async with page.expect_file_chooser() as fc_info:
+                await upload_element.click()
+                instagram_logger.info("[+] 点击上传按钮，等待文件选择器")
+            file_chooser = await fc_info.value
+            await file_chooser.set_files(self.file_path)
+            instagram_logger.info("[+] 通过文件选择器设置文件")
             instagram_logger.info("[+] 视频文件已选择")
         except Exception as e:
             instagram_logger.error(f"选择视频文件失败: {str(e)}")
@@ -495,76 +425,14 @@ class InstagramVideo(object):
             page: playwright页面对象
         """
         try:
-            # 根据Meta Business Suite截图，使用正确的文本输入框选择器
-            caption_selectors = [
-                # 优先匹配Instagram特有的可编辑div输入框（根据提供的HTML结构）
-                'div[role="combobox"][contenteditable="true"][aria-label*="Write into the dialogue box"]',
-                'div[role="combobox"][contenteditable="true"][aria-label*="Write something"]',
-                
-                # 通用可编辑div选择器（支持其他平台）
-                'div[contenteditable="true"][role="combobox"]',
-                'div[contenteditable="true"][aria-label*="caption"]',
-                'div[contenteditable="true"][aria-label*="text"]',
-                'div[contenteditable="true"][aria-label*="Write"]',
-                'div[contenteditable="true"][class*="caption"]',
-                'div[contenteditable="true"][class*="text"]',
-                
-                # 传统textarea选择器（兼容旧版界面）
-                'textarea[placeholder="Text"]',
-                'textarea[placeholder="Write something..."]',
-                'textarea[placeholder="Write a caption..."]',
-                'textarea[placeholder="Add a caption"]',
-                'textarea[name="caption"]',
-                'textarea[name="text"]',
-                'textarea[id="caption"]',
-                'textarea[id="text"]',
-                
-                # 基于aria-label的textarea选择器
-                'textarea[aria-label="Text"]',
-                'textarea[aria-label="Caption"]',
-                'textarea[aria-label="Write something"]',
-                
-                # 基于data-testid的选择器
-                'textarea[data-testid="caption-input"]',
-                'textarea[data-testid="text-input"]',
-                'div[data-testid*="caption"][contenteditable="true"]',
-                'div[data-testid*="text"][contenteditable="true"]',
-                
-                # 基于类名和父容器的选择器
-                'div[class*="post-details"] textarea',
-                'div[class*="post-details"] div[contenteditable="true"]',
-                'div[class*="text-section"] textarea',
-                'div[class*="text-section"] div[contenteditable="true"]',
-                
-                # 最终后备选择器
-                'div[contenteditable="true"]',
-                'textarea'
-            ]
+            # 根据日志中的精确选择器简化
+            caption_selector = 'div[role="combobox"][contenteditable="true"][aria-label*="Write into the dialogue box"]'
             
-            caption_field = None
-            found_selector = ""
-            
-            for selector in caption_selectors:
-                if await self.locator_base.locator(selector).count() > 0:
-                    caption_field = self.locator_base.locator(selector)
-                    found_selector = selector
-                    break
-            
-            if not caption_field:
-                # 如果没有找到，尝试查找所有textarea元素并打印，用于调试
-                all_textareas = await self.locator_base.locator('textarea').all()
-                textarea_info = []
-                for i, textarea in enumerate(all_textareas):
-                    placeholder = await textarea.get_attribute('placeholder')
-                    aria_label = await textarea.get_attribute('aria-label')
-                    textarea_info.append(f"textarea {i}: placeholder='{placeholder}', aria-label='{aria_label}'")
-                instagram_logger.warning(f"[+] 未找到文本输入框，页面上的所有textarea: {textarea_info}")
-                # 抛出异常，让调用者处理
-                raise Exception("未找到文本输入框")
-            
-            instagram_logger.info(f"[+] 找到文本输入框，选择器: {found_selector}")
-            
+            caption_field = self.locator_base.locator(caption_selector)
             await caption_field.wait_for(state='visible')
+            
+            instagram_logger.info(f"[+] 找到文本输入框，选择器: {caption_selector}")
+            
             await caption_field.click()
             
             # 清空现有内容
@@ -655,117 +523,44 @@ class InstagramVideo(object):
         Args:
             page: playwright页面对象
         """
-        success_flag_div = 'div.common-modal-confirm-modal'
-        while True:
+        max_wait_time = 70  # 最大等待时间（秒）
+        wait_time = 0
+        
+        while wait_time < max_wait_time:
             try:
-                # Meta Business Suite的发布按钮可能有不同的选择器
-                publish_selectors = [
-                    # 优先匹配Instagram特有的div发布按钮（根据提供的HTML结构）
-                    'div[role="button"][id*="js_"]',
-                    'div[role="button"][id*="js_"]:not([aria-disabled="true"])',
-                    'div[role="button"][id*="js_"]:not([disabled])',
-                    
-                    # 基于文本内容的选择器（支持div和button）
-                    '*[role="button"]:has(:text("Publish"))',
-                    '*[role="button"]:has(:text("Publish")):not([disabled])',
-                    '*:has-text("Publish"):not([disabled])',
-                    
-                    '*[role="button"]:has(:text("Post"))',
-                    '*[role="button"]:has(:text("Post")):not([disabled])',
-                    '*:has-text("Post"):not([disabled])',
-                    
-                    '*[role="button"]:has(:text("Share"))',
-                    '*[role="button"]:has(:text("Share")):not([disabled])',
-                    '*:has-text("Share"):not([disabled])',
-                    
-                    # 传统button元素选择器（兼容旧版界面）
-                    'button:has-text("Publish")',
-                    'button:has-text("Publish"):not([disabled])',
-                    'button:has-text("Post")',
-                    'button:has-text("Post"):not([disabled])',
-                    'button:has-text("Share")',
-                    'button:has-text("Share"):not([disabled])',
-                    
-                    # 基于位置的选择器（支持div和button）
-                    'div.button-group *[role="button"]',
-                    'div.button-group button',
-                    'div[class*="button-group"] *[role="button"]',
-                    'div[class*="button-group"] button',
-                    'div[class*="action-buttons"] *[role="button"]',
-                    'div[class*="action-buttons"] button',
-                    'div[class*="bottom-buttons"] *[role="button"]',
-                    'div[class*="bottom-buttons"] button',
-                    
-                    # 基于类名的选择器（支持div和button）
-                    '*[role="button"][class*="publish"]',
-                    'button[class*="publish"]',
-                    '*[role="button"][class*="post"]',
-                    'button[class*="post"]',
-                    '*[role="button"][class*="share"]',
-                    'button[class*="share"]',
-                    
-                    # 基于aria-label的选择器（支持div和button）
-                    '*[role="button"][aria-label="Publish"]',
-                    'button[aria-label="Publish"]',
-                    '*[role="button"][aria-label="Post"]',
-                    'button[aria-label="Post"]',
-                    '*[role="button"][aria-label="Share"]',
-                    'button[aria-label="Share"]',
-                    
-                    # 基于Instagram特有类名的选择器
-                    'div.x1i10hfl.xjqpnuy.xc5r6h4.xqeqjp1.x1phubyo.x972fbf.x10w94by.x1qhh985.x14e42zd.x9f619.x1ypdohk.x3ct3a4.xdj266r.x14z9mp.xat24cr.x1lziwak.x2lwn1j.xeuugli[role="button"]',
-                    
-                    # 最终后备选择器
-                    '*[role="button"]:not([disabled])'
-                ]
+                # 根据日志中的精确选择器简化 - 只使用日志中出现的选择器
+                publish_selector = '*[role="button"]:has(:text("Publish"))'
                 
-                publish_button = None
-                found_selector = ""
+                publish_button = self.locator_base.locator(publish_selector)
+                await publish_button.wait_for(state='visible')
                 
-                for selector in publish_selectors:
-                    count = await self.locator_base.locator(selector).count()
-                    if count > 0:
-                        publish_button = self.locator_base.locator(selector)
-                        found_selector = selector
-                        break
+                # 检查按钮是否可用
+                if await publish_button.is_disabled():
+                    instagram_logger.info("  [-] 发布按钮不可用，等待...")
+                    await asyncio.sleep(1)
+                    continue
                 
-                if publish_button:
-                    # 打印publish_button的文本和选择器
-                    button_text = await publish_button.text_content()
-                    instagram_logger.info(f"  [-] publish_button text: {button_text}, selector: {found_selector}")
-                    
-                    # 检查按钮是否可见
-                    await publish_button.wait_for(state='visible')
-                    
-                    # 检查按钮是否可用
-                    if await publish_button.is_disabled():
-                        instagram_logger.info("  [-] 发布按钮不可用，等待...")
-                        await asyncio.sleep(1)
-                        continue
-                    
-                    # 点击发布按钮
-                    await publish_button.click()
-                    instagram_logger.info("  [-] 已点击发布按钮")
-                else:
-                    # 如果没有找到，尝试查找所有button并打印文本，用于调试
-                    all_buttons = await self.locator_base.locator('button').all()
-                    button_texts = []
-                    for btn in all_buttons:
-                        text = await btn.text_content()
-                        if text:
-                            button_texts.append(text.strip())
-                    instagram_logger.warning(f"[+] 未找到发布按钮，页面上的所有按钮文本: {button_texts}")
-                    # 抛出异常，让调用者处理
-                    raise Exception("未找到发布按钮")
-
+                # 点击发布按钮
+                await publish_button.click()
+                instagram_logger.info("  [-] 已点击发布按钮")
+                
                 # 等待发布完成，发布成功后会跳转到内容日历页面
                 if "content_calendar" in page.url.lower():
                     instagram_logger.success("  [-] video published success, detected content calendar in URL")
                     break
             except Exception as e:
                 instagram_logger.exception(f"  [-] Exception: {e}")
-                instagram_logger.info("  [-] video publishing")
+                instagram_logger.info(f"  [-] video publishing, current URL: {page.url}")
                 await asyncio.sleep(0.5)
+                wait_time += 0.5
+        
+        # 超时后检查URL
+        if wait_time >= max_wait_time:
+            instagram_logger.error(f"  [-] 发布超时，当前URL: {page.url}")
+            if "content_calendar" in page.url.lower():
+                instagram_logger.success("  [-] 虽然超时，但检测到内容日历页面，认为发布成功")
+            else:
+                raise Exception(f"发布超时，当前URL: {page.url}")
 
     async def detect_upload_status(self, page):
         """
