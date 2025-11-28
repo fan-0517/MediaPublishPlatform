@@ -14,7 +14,13 @@ from utils.log import xhs_logger as logger
 
 class xhsVideoUploader(object):
     """
-    小红书视频上传器类
+    小红书视频上传器类参数说明：
+    account_file: 账号cookie文件路径
+    file_path: 视频文件路径
+    title: 视频标题
+    text: 视频正文描述
+    tags: 视频标签，多个标签用逗号隔开
+    publish_date: 发布时间，格式为YYYY-MM-DD HH:MM:SS
     """
     
     def __init__(self, account_file, file_path, title, text, tags, publish_date):
@@ -29,11 +35,15 @@ class xhsVideoUploader(object):
         self.text = text
 
         # URL constants
+        # 平台名称
         self.platform_name = "xhs"
-        self.creator_url = "https://creator.xiaohongshu.com/publish/publish?from=homepage&target=video&openFilePicker=true"
+        # 个人中心页面URL
         self.personal_url = "https://creator.xiaohongshu.com/new/home"
+        # 登录页面URL
         self.login_url = "https://creator.xiaohongshu.com/login"
-        
+        # 视频上传页面URL
+        self.creator_url = "https://creator.xiaohongshu.com/publish/publish?from=homepage&target=video&openFilePicker=true"
+
         # Selector lists
         # 上传按钮选择器
         self.upload_button_selectors = [
@@ -65,6 +75,8 @@ class xhsVideoUploader(object):
         
         
         # constants
+        # 是否跳过验证cookie有效性
+        self.skip_cookie_verify = True
         # 视频/图文发布状态
         self.publish_status = False
         #按钮等待可见超时时间
@@ -113,8 +125,9 @@ class xhsVideoUploader(object):
         主入口函数
         """
         # 验证平台cookie是否有效(可选：如果已登录，可跳过验证)
-        if not await self.platform_setup(handle=True):
-            raise Exception(f"{self.platform_name} Cookie验证失败")
+        if not self.skip_cookie_verify:
+            if not await self.platform_setup(handle=True):
+                raise Exception(f"{self.platform_name} Cookie验证失败")
 
         # 执行平台上传视频
         async with async_playwright() as playwright:
