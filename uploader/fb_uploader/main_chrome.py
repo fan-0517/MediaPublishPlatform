@@ -102,6 +102,7 @@ class FacebookVideo(object):
         # step11.重新保存最新cookie
         await context.storage_state(path=f"{self.account_file}")  
         logger.info("step11：【Facebook】cookie已更新")
+
         await asyncio.sleep(2)  # close delay for look the video status
         
         # step12.关闭所有页面和浏览器上下文
@@ -184,12 +185,15 @@ class FacebookVideo(object):
                     logger.info("  [-] video uploading...")
                     await asyncio.sleep(2)
                     # 检查是否有错误需要重试，使用中文和英文选择器
-                    facebook_upload_selector = ['div[aria-label="照片/视频"]']
-                    upload_button = await self.find_button(facebook_upload_selector)
-                    if upload_button:
-                        logger.info("  [-] found some error while uploading now retry...")
+                    error_selectors = [
+                        'div:has-text("error"):visible',
+                        'div:has-text("Error"):visible',
+                        'div[class*="error"]:visible'
+                    ]
+                    error_element = await self.find_button(error_selectors)
+                    if error_element:
+                        logger.info("  [-] found error while uploading now retry...")
                         await self.handle_upload_error(page)
-                        break
             except Exception as e:
                 logger.info(f"  [-] video uploading... Error: {str(e)}")
                 await asyncio.sleep(2)
@@ -330,7 +334,14 @@ class FacebookVideo(object):
                 if publish_button:
                     await publish_button.click()
 
-                await page.wait_for_url("https://www.facebook.com/",  timeout=60000)
+                # 等待上传按钮再次可见，就代表视频发布完毕了
+                upload_button_selectors = [
+                    'div[aria-label="照片/视频"]',
+                    'div[aria-label="Photo/Video"]'
+                ]
+                
+                upload_button = await self.find_button(upload_button_selectors)
+                await upload_button.wait_for(state='visible', timeout=30000)
                 break
             except Exception as e:
                 logger.exception(f"  [-] Exception: {e}")

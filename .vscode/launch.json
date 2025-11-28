@@ -11,7 +11,8 @@
             "program": "${workspaceFolder}/sau_backend.py",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "pythonPath": "D:\\Programs\\Python\\Python311\\python.exe",
+            //"pythonPath": "D:\\Programs\\Python\\Python311\\python.exe",
+            "pythonPath": "E:\\ProgramData\\Python\\Python312\\python.exe",
             "env": {
                 "PYTHONUNBUFFERED": "1"
             },
