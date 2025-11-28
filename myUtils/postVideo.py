@@ -87,10 +87,21 @@ def post_video_xhs(title,files,tags,account_file,category=TencentZoneTypes.LIFES
     for index, file in enumerate(files):
         for cookie in account_file:
             # 打印视频文件名、标题和 hashtag
-            print(f"视频文件名：{file}")
+            print(f"文件名：{file}")
+            #根据文件名后缀判断文件类型
+            #.jpg,.jpeg,.png,.webp 为图片文件
+            if file.suffix == '.jpg' or file.suffix == '.jpeg' or file.suffix == '.png' or file.suffix == '.webp':
+                file_type = 1
+            #.mp4,.mov,.flv,.f4v,.mkv,.rm,.rmvb,.m4v,.mpg,.mpeg,.ts 为视频文件
+            elif file.suffix == '.mp4' or file.suffix == '.mov' or file.suffix == '.flv' or file.suffix == '.f4v' or file.suffix == '.mkv' or file.suffix == '.rm' or file.suffix == '.rmvb' or file.suffix == '.m4v' or file.suffix == '.mpg' or file.suffix == '.mpeg' or file.suffix == '.ts':
+                file_type = 2
+            else:
+                logger.error(f"该文件类型暂不支持：{file}")
+                continue
+            print(f"文件类型：{file_type}")
             print(f"标题：{title}")
-            print(f"Hashtag：{tags}")
-            print(f"file_type：{file_type}")
+            #print(f"正文描述：{text}")
+            print(f"标签：{tags}")
             app = xhsVideoUploader(cookie, file_type, file, title, text, tags, publish_datetimes)
             asyncio.run(app.main(), debug=False)
 
