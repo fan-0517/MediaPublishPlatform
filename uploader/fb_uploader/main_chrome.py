@@ -439,8 +439,8 @@ async def get_platform_cookie(account_file):
         context = await set_init_script(context)
         # Pause the page, and start recording manually.
         page = await context.new_page()
-        url = "https://www.facebook.com/"
-        await page.goto(url, wait_until='domcontentloaded', timeout=60000)
+        login_url = "https://www.facebook.com/"
+        await page.goto(login_url, wait_until='domcontentloaded', timeout=60000)
         await page.pause()
         # 点击调试器的继续，保存cookie
         await context.storage_state(path=account_file)
