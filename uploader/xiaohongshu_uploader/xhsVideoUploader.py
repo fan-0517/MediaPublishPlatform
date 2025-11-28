@@ -91,14 +91,14 @@ class xhsVideoUploader(object):
         主入口函数
         """
         # 验证平台cookie是否有效(可选：如果已登录，可跳过验证)
-        if not await platform_setup(self, handle=True):
-            raise Exception("Cookie验证失败")
+        if not await self.platform_setup(handle=True):
+            raise Exception(f"{self.platform_name} Cookie验证失败")
 
         # 执行平台上传视频
         async with async_playwright() as playwright:
             await self.upload(playwright)
 
-        logger.info(f"视频上传成功: {self.title}")
+        logger.info(f"{self.platform_name}视频上传成功: {self.title}")
         return True
 
     async def upload(self, playwright: Playwright) -> None:
