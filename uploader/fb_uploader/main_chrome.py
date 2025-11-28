@@ -220,7 +220,7 @@ class FacebookVideo(object):
         """
         try:
             # 使用find_button方法定位标题输入框，支持中文和英文界面
-            editor_locators = [
+            editor_button_locators = [
                 # 中文界面选择器
                 '[contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
                 '[aria-placeholder*="分享你的新鲜事"][contenteditable="true"]',
@@ -229,7 +229,7 @@ class FacebookVideo(object):
                 '[aria-label="Write something..."]'
             ]
 
-            editor_button = await self.find_button(editor_locators)
+            editor_button = await self.find_button(editor_button_locators)
             if not editor_button:
                 raise Exception("未找到标题输入框")
             logger.info(f"  [-] 将点击标题输入框: {await editor_button.text_content()}")
@@ -237,7 +237,7 @@ class FacebookVideo(object):
             
             # 清空现有内容
             await page.keyboard.press("Control+A")
-            await page.keyboard.press("Delete")         
+            await page.keyboard.press("Delete")
             await page.wait_for_timeout(500)  # 等待500毫秒
                 
             # 输入标题
@@ -252,8 +252,8 @@ class FacebookVideo(object):
                 for index, tag in enumerate(self.tags, start=1):
                     logger.info("Setting the %s tag" % index)
                     await page.keyboard.insert_text(f"#{tag} ")
+                    # 等待300毫秒
                     await page.wait_for_timeout(300)
-                      # 等待300毫秒
         except Exception as e:
             logger.error(f"添加标题和标签失败: {str(e)}")
 
@@ -313,40 +313,56 @@ class FacebookVideo(object):
 
     async def click_publish(self, page):
         """
-        作用：点击发布按钮
-        网页中相关按钮：发布按钮选择器（）
+        作用：点击发布按钮并等待发布完成
+        参数：
+            page: Playwright页面对象
+        返回值：
+            bool: 发布是否成功
         """
-        while True:
+        max_attempts = 3  # 最大尝试次数
+        attempt = 0
+        publish_success = False
+        
+        # 发布按钮选择器列表
+        publish_button_selectors = [
+            '//span[text()="发帖"]',
+            '//span[text()="Post"]',
+            '//span[text()="Schedule"]',
+            '//span[text()="发布"]'
+        ]
+        
+        # 上传按钮选择器列表
+        upload_button_selectors = [
+            'div[aria-label="照片/视频"]',
+            'div[aria-label="Photo/Video"]'
+        ]
+        
+        while attempt < max_attempts and not publish_success:
+            attempt += 1
             try:
-                # 使用find_button方法查找发布按钮
-                publish_button_selectors = [
-                    '//span[text()="发帖"]',
-                    '//span[text()="Post"]',
-                    '//span[text()="Schedule"]',
-                    '//span[text()="发布"]'
-                ]
+                # 步骤1: 查找并点击发布按钮
                 publish_button = await self.find_button(publish_button_selectors)
-                
-                # 打印publish_button的文本
-                button_text = await publish_button.text_content() if publish_button else "Not found"
-                logger.info(f"  [-] 将点击发布按钮: {button_text}")
-                
                 if publish_button:
                     await publish_button.click()
 
-                # 等待上传按钮再次可见，就代表视频发布完毕了
-                upload_button_selectors = [
-                    'div[aria-label="照片/视频"]',
-                    'div[aria-label="Photo/Video"]'
-                ]
-                
+                # 步骤2: 等待视频处理完成（通过检查上传按钮重新出现）
+                logger.info("  [-] 等待视频处理和发布完成...")
+                # 尝试查找上传按钮
                 upload_button = await self.find_button(upload_button_selectors)
-                await upload_button.wait_for(state='visible', timeout=30000)
-                break
-            except Exception as e:
-                logger.exception(f"  [-] Exception: {e}")
-                logger.info("  [-] video publishing")
-                await asyncio.sleep(0.5)
+                if upload_button:
+                    await upload_button.wait_for(state='visible', timeout=30000)
+                    publish_success = True
+                    break
+            except Exception:
+                # 等待后重试
+                await asyncio.sleep(min(attempt * 2, 10))
+        
+        # 最终状态检查
+        if publish_success:
+            logger.info("  [-] 视频发布流程已完成")
+        else:
+            logger.error(f"  [-] 在{max_attempts}次尝试后仍未能成功发布视频")
+        return publish_success
 
 
 async def cookie_auth(account_file):
