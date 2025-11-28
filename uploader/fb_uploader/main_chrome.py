@@ -33,7 +33,7 @@ class FacebookVideo(object):
         主入口函数
         """
         # 验证平台cookie是否有效(可选：如果已登录，可跳过验证)
-        if not await platform_setup(self.account_file, handle=True):
+        if not await platform_setup(self, handle=True):
             raise Exception("Cookie验证失败")
 
         # 执行平台上传视频
@@ -365,14 +365,27 @@ class FacebookVideo(object):
         return publish_success
 
 
-async def cookie_auth(account_file):
+async def platform_setup(self, handle=False):
+    """
+    设置平台账户cookie
+    """
+    account_file = get_absolute_path(self.account_file, "cookiesFile")
+    if not os.path.exists(account_file) or not await cookie_auth(self):
+        if not handle:
+            return False
+        logger.info('[+] cookie file is not existed or expired. Now open the browser auto. Please login.')
+        await get_platform_cookie(account_file)
+    return True
+
+
+async def cookie_auth(self):
     """
     验证平台的cookie是否有效
     """
     async with async_playwright() as playwright:
         # 设置本地Chrome浏览器路径
         browser = await playwright.chromium.launch(headless= LOCAL_CHROME_HEADLESS, executable_path=LOCAL_CHROME_PATH)
-        context = await browser.new_context(storage_state=account_file)
+        context = await browser.new_context(storage_state=self.account_file)
         context = await set_init_script(context)
         # 创建一个新的页面
         page = await context.new_page()
@@ -400,19 +413,6 @@ async def cookie_auth(account_file):
             return False
         finally:
             await browser.close()
-
-
-async def platform_setup(account_file, handle=False):
-    """
-    设置平台账户cookie
-    """
-    account_file = get_absolute_path(account_file, "fb_uploader")
-    if not os.path.exists(account_file) or not await cookie_auth(account_file):
-        if not handle:
-            return False
-        logger.info('[+] cookie file is not existed or expired. Now open the browser auto. Please login.')
-        await get_platform_cookie(account_file)
-    return True
 
 
 async def get_platform_cookie(account_file):
