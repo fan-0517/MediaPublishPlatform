@@ -392,7 +392,7 @@ async def cookie_auth(self):
     """
     async with async_playwright() as playwright:
         # 设置本地Chrome浏览器路径
-        browser = await playwright.chromium.launch(headless=LOCAL_CHROME_HEADLESS, executable_path=LOCAL_CHROME_PATH)
+        browser = await playwright.chromium.launch(headless=True, executable_path=LOCAL_CHROME_PATH)
         context = await browser.new_context(storage_state=self.account_file)
         context = await set_init_script(context)
         # 创建一个新的页面
