@@ -542,7 +542,7 @@ def postVideo():
     file_type = data.get('fileType')  #文件类型，默认值为2：1-图文 2-视频
     file_list = data.get('fileList', []) #文件列表，每个元素为一个字典，包含文件路径和文件名
     title = data.get('title') #文件标题
-    text = data.get('text', 'demo') #文件正文描述，默认值为demo
+    text = data.get('text') #文件正文描述，默认值为demo
     tags = data.get('tags') #文件标签，逗号分隔
     category = data.get('category') #文件分类，0-无分类 1-美食 2-日常 3-旅行 4-娱乐 5-教育 6-其他
     if category == 0:

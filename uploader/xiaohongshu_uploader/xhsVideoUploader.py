@@ -195,7 +195,7 @@ class xhsVideoUploader(object):
         
         # step10.点击发布
         await self.click_publish(page)
-        logger.info(f"step10：{self.platform_name}视频已发布")   
+        logger.info(f"step10：{self.platform_name}视频已点击发布按钮")   
 
         # step11.重新保存最新cookie
         await context.storage_state(path=f"{self.account_file}")  

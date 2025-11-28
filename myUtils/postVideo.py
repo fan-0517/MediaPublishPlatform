@@ -92,6 +92,8 @@ def post_video_xhs(account_file, file_type, files, title, text,tags,enableTimer=
     """
 
     try:
+        #平台名称
+        platform = "xhs"
         # 生成文件的完整路径
         account_file = [Path(BASE_DIR / "cookiesFile" / file) for file in account_file]
         files = [Path(BASE_DIR / "videoFile" / file) for file in files]
@@ -106,7 +108,7 @@ def post_video_xhs(account_file, file_type, files, title, text,tags,enableTimer=
             for cookie in account_file:
                 try:
                     # 打印视频文件名、标题和 hashtag
-                    print(f"文件名：{file}")
+                    print(f"{platform}文件名：{file}")
                     # 根据文件名后缀判断文件类型
                     # .jpg,.jpeg,.png,.webp 为图片文件
                     if file.suffix in ['.jpg', '.jpeg', '.png', '.webp']:
@@ -119,18 +121,28 @@ def post_video_xhs(account_file, file_type, files, title, text,tags,enableTimer=
                         logger.error(f"该文件类型暂不支持：{file}")
                         continue
 
-                    print(f"文件类型：{file_type}")
-                    print(f"标题：{title}")
+                    print(f"{platform}文件类型：{file_type}")
+                    print(f"{platform}标题：{title}")
                     # print(f"正文描述：{text}")
-                    print(f"标签：{tags}")
+                    print(f"{platform}标签：{tags}")
 
                     app = xhsVideoUploader(cookie, file_type, file, title, text, tags, publish_datetimes)
                     asyncio.run(app.main(), debug=False)
+                    #是否成功发布
+                    if app.publish_success:
+                        logger.info(f"{platform}文件{file.name}发布成功")
+                    else:
+                        logger.error(f"{platform}文件{file.name}发布失败")
+                    #任务进度
+                    logger.info(f"{platform}已发布{index+1}/{file_num}个文件")
+                    #全部发布完毕后
+                    if index+1 == file_num:
+                        logger.info(f"{platform}所有文件发布完成")
                 except Exception as e:
-                    logger.error(f"TikTok视频发布失败: {str(e)}")
+                    logger.error(f"{platform}文件{file.name}发布失败: {str(e)}")
                     # 继续尝试其他账号或文件，不中断整个流程
     except Exception as e:
-        logger.error(f"文件发布过程中发生异常: {str(e)}")
+        logger.error(f"{platform}文件{file.name}发布过程中发生异常: {str(e)}")
         # 抛出异常，让调用方处理
         raise
 
