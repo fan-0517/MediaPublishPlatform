@@ -33,8 +33,8 @@ class FacebookVideo(object):
         主入口函数
         """
         # 验证平台cookie是否有效(可选：如果已登录，可跳过验证)
-        if not await platform_setup(self, handle=True):
-            raise Exception("Cookie验证失败")
+        #if not await platform_setup(self, handle=True):
+        #    raise Exception("Cookie验证失败")
 
         # 执行平台上传视频
         async with async_playwright() as playwright:
