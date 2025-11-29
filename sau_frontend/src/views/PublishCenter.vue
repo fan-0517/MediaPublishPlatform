@@ -336,7 +336,7 @@
           </div>
           
           <!-- 正文输入 -->
-          <div class="content-section">
+          <div v-if="tab.selectedPlatform === 1" class="content-section">
             <h3>正文</h3>
             <el-input
               v-model="tab.content"

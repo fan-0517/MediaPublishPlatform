@@ -1,274 +1,144 @@
-# social-auto-upload
+# Social Auto Upload - 多平台社交媒体自动发布系统
 
-`social-auto-upload` 是一个强大的自动化工具，旨在帮助内容创作者和运营者高效地将视频内容一键发布到多个国内外主流社交媒体平台。
-项目实现了对 `抖音`、`Bilibili`、`小红书`、`快手`、`视频号`、`百家号` 以及 `TikTok` 等平台的视频上传、定时发布等功能。
-结合各平台 `uploader` 模块，您可以轻松配置和扩展支持的平台，并通过示例脚本快速上手。
+## 项目地址
 
-<img src="media/show/tkupload.gif" alt="tiktok show" width="800"/>
+[GitHub 仓库](https://github.com/your-username/your-repo.git)  <!-- 请替换为您自己的 Git 地址 -->
 
-## 目录
+## 项目介绍
 
-- [💡 功能特性](#💡功能特性)
-- [🚀 支持的平台](#🚀支持的平台)
-- [💾 安装指南](#💾安装指南)
-- [🏁 快速开始](#🏁快速开始)
-- [🐇 项目背景](#🐇项目背景)
-- [📃 详细文档](#📃详细文档)
-- [🐾 交流与支持](#🐾交流与支持)
-- [🤝 贡献指南](#🤝贡献指南)
-- [📜 许可证](#📜许可证)
-- [⭐ Star History](#⭐Star-History)
+Social Auto Upload 是一个功能强大的多平台社交媒体自动发布系统，支持图文和视频内容的批量上传与定时发布。
 
-## 💡功能特性
+### 后端架构
 
-### 已支持平台
+后端采用模块化设计，基于 Flask 框架构建 RESTful API 服务，结合 Playwright 实现浏览器自动化上传，核心组件包括：
 
--   **国内平台**:
-    -   [x] 抖音
-    -   [x] 视频号
-    -   [x] Bilibili
-    -   [x] 小红书
-    -   [x] 快手
-    -   [x] 百家号
--   **国外平台**:
-    -   [x] TikTok
+1. **核心上传引擎** (`myUtils/baseFileUploader.py`)
+   - 通用多平台上传器基类，定义了统一的上传接口和流程
+   - 支持多平台配置（小红书、腾讯、抖音、快手、TikTok、Instagram 等）
+   - 使用 Playwright 实现浏览器自动化操作
+   - 支持图文和视频两种内容类型
+   - 提供定时发布、标签管理等核心功能
+
+2. **多文件上传处理** (`myUtils/multiFileUploader.py`)
+   - 批量文件处理，支持多账号轮换
+   - 自动生成发布计划时间
+   - 异步执行上传任务
+   - 提供完整的发布结果反馈
+
+3. **Flask 后端服务** (`sau_backend.py`)
+   - RESTful API 接口设计
+   - 文件上传、保存和查询功能
+   - 支持跨域请求
+   - 数据库集成，记录文件上传历史
+   - 提供用户认证和权限管理
+
+4. **平台特定实现** (`uploader/xiaohongshu_uploader/xhsVideoUploader.py`)
+   - 针对小红书平台的特定上传逻辑
+   - 继承自通用上传器，实现平台特有功能
+   - 支持小红书创作者平台的各种发布选项
+
+### 技术栈
+
+- **Web 框架**: Flask
+- **浏览器自动化**: Playwright
+- **数据库**: SQLite
+- **异步处理**: asyncio
+- **文件管理**: pathlib
+- **日志管理**: 自定义日志模块
 
 ### 核心功能
 
--   [x] 定时上传 (Cron Job / Scheduled Upload)
--   [ ] Cookie 管理 (部分实现，持续优化中)
--   [ ] 国外平台 Proxy 设置 (部分实现)
+1. **多平台支持**
+   - 小红书、腾讯视频号、抖音、快手、TikTok、Instagram 等主流平台
+   - 统一的上传接口，便于扩展新平台
 
-### 计划支持与开发中
+2. **内容类型支持**
+   - 支持视频文件上传
+   - 支持图文内容发布
+   - 支持封面设置（部分平台）
 
--   **平台扩展**:
-    -   [ ] YouTube
--   **功能增强**:
-    -   [x] 更易用的版本 (GUI / CLI 交互优化)
-    -   [x] API 封装
-    -   [x] Docker 部署
-    -   [ ] 自动化上传 (更智能的调度策略)
-    -   [ ] 多线程/异步上传优化
-    -   [ ] Slack/消息推送通知
+3. **发布功能**
+   - 即时发布
+   - 定时发布，支持自定义发布时间
+   - 批量发布，支持多账号轮换
 
-### 2025.10.30目前现状
-该项目本人很长一段时间没维护了，有比较大的问题也是能简单快速修复就修复掉
+4. **管理功能**
+   - 文件上传和管理
+   - 发布历史记录
+   - 账号管理
 
-因为我自己也在创业，每天时间都用不完
+### 工作流程
 
-目前问题主要集中在
-1. 小红书部分，这部分是直接适用xhs这个库来实现的
-2. web 端（vue版本），这个版本是群友LeeDebug他帮忙做的（再次感谢他）
+1. 前端上传文件到后端服务器
+2. 后端保存文件并记录到数据库
+3. 调用上传引擎执行发布任务
+4. Playwright 启动浏览器，加载平台发布页面
+5. 自动填充标题、正文、标签等信息
+6. 执行发布操作，等待发布完成
+7. 返回发布结果，更新数据库记录
 
-因为我日常也在用，我用的不是web端，而是最初`uploader`文件夹里的版本，也就是文档里提到的部分https://sap-doc.nasdaddy.com/
-所以这里一般遇到的问题，我都会尝试去解决，一并推送到该仓库
+## 安装指南
 
-目前能遇到的问题，基本上都比较小，可能是元素变化导致的
-在初期设计的时候，其实我已经参考了某些不可变元素去选择，极大的避免了后期因为平台页面修改导致的元素变化
+### 1. 克隆项目
 
-该项目不仅仅是技术人员，有不少是非技术的从业人员，他们是没能力修复一个简单弱小的bug
-为了能帮助更多的人，所以呼吁**技术小伙伴**
+```bash
+git clone https://github.com/dreammis/social-auto-upload.git
+cd social-auto-upload
+```
 
-如果大家
-- 修复了一些bug
-- 增加一些对大家有帮助的功能
+### 2. 安装依赖
 
-请积极的提出pr，我会想尽可能的确认后合并的，在此感谢大家对于开源项目的支持，帮助更多的人
+```bash
+pip install -r requirements.txt
+```
 
-我自己也会尽100%的力量，在自己项目稳定后，修bug，加更多的平台，开发出gradio版本（更易部署），大家谅解
+### 3. 安装浏览器驱动
 
----
+根据你的操作系统，安装相应的浏览器驱动（Chrome 或 Edge）
 
-## 🚀支持的平台
+### 4. 配置文件
 
-本项目通过各平台对应的 `uploader` 模块实现视频上传功能。您可以在 `examples` 目录下找到各个平台的使用示例脚本。
+创建并配置必要的配置文件：
 
-每个示例脚本展示了如何配置和调用相应的 uploader。
+- `conf.py`: 基础配置
+- `database.db`: 数据库文件（自动生成）
+- `cookiesFile/`: 存放各平台账号 Cookie 文件
+- `videoFile/`: 存放待上传的视频和图片文件
 
-## 💾安装指南
+### 5. 启动后端服务
 
-1.  **克隆项目**:
-    ```bash
-    git clone https://github.com/dreammis/social-auto-upload.git
-    cd social-auto-upload
-    ```
+```bash
+python sau_backend.py
+```
 
-2.  **安装依赖**:
-    建议在虚拟环境中安装依赖。
-    ```bash
-    conda create -n social-auto-upload python=3.10
-    conda activate social-auto-upload
-    # 挂载清华镜像 or 命令行代理
-    pip install -r requirements.txt
-    ```
+### 6. 访问前端页面
 
-3.  **安装 Playwright 浏览器驱动**:
-    ```bash
-    playwright install chromium firefox
-    ```
-    根据您的需求，至少需要安装 `chromium`。`firefox` 主要用于 TikTok 上传（旧版）。
+在浏览器中访问 `http://localhost:5000`
 
-4.  **修改配置文件**:
-    复制 `conf.example.py` 并重命名为 `conf.py`。
-    在 `conf.py` 中，您需要配置以下内容：
-    -   `LOCAL_CHROME_PATH`: 本地 Chrome 浏览器的路径，比如 `C:\Program Files\Google\Chrome\Application\chrome.exe` 保存。
-    
-    **临时解决方案**
+## 快速开始
 
-    需要在根目录创建 `cookiesFile` 和 `videoFile` 两个文件夹，分别是 存储cookie文件 和 存储上传文件 的文件夹
+1. 上传要发布的文件
+2. 选择发布平台和账号
+3. 填写标题、正文和标签
+4. 设置发布时间（可选）
+5. 点击发布按钮，系统将自动执行发布任务
 
-5.  **配置数据库**:
-    如果 db/database.db 文件不存在，您可以运行以下命令来初始化数据库：
-    ```bash
-    cd db
-    python createTable.py
-    ```
-    此命令将初始化 SQLite 数据库。
+## Docker 部署
 
-6.  **启动后端项目**:
-    ```bash
-    python sau_backend.py
-    ```
-    后端项目将在 `http://localhost:5409` 启动。
+```bash
+docker build -t social-auto-upload .
+docker run -p 5000:5000 social-auto-upload
+```
 
-7.  **启动前端项目**:
-    ```bash
-    cd sau_frontend
-    npm install
-    npm run dev
-    ```
-    前端项目将在 `http://localhost:5173` 启动，在浏览器中打开此链接即可访问。
+## 支持的平台
 
+- ✅ 小红书
+- ✅ 腾讯视频号
+- ✅ 抖音
+- ✅ 快手
+- ✅ TikTok
+- ✅ Instagram
 
-> 非程序员用户可以参考：[新手级教程](https://juejin.cn/post/7372114027840208911)
+## 许可证
 
-
-## 🏁快速开始
-
-1.  **准备 Cookie**: 
-    大多数平台需要登录后的 Cookie 信息才能进行操作。请参照 examples 目录下各 `get_xxx_cookie.py` 脚本（例如 get_douyin_cookie.py, get_ks_cookie.py）的说明，运行脚本以生成并保存 Cookie 文件（通常在 `cookies/[PLATFORM]_uploader/account.json`）。
-
-2.  **准备视频文件**: 
-    将需要上传的视频文件（通常为 `.mp4` 格式）放置在 videos 目录下。
-    部分平台支持视频封面，可以将封面图片（例如 `.png` 格式，与视频同名）也放在此目录。
-    如果需要上传标题及标签，请在视频文件旁边创建一个同名的 `.txt` 文件，内容为标题和标签，以换行分隔。
-
-3.  **修改并运行示例脚本**:
-    打开 examples 目录中您想使用的平台的上传脚本（例如 upload_video_to_douyin.py）。
-    -   根据脚本内的注释和说明，确认 Cookie 文件路径、视频文件路径等配置是否正确。
-    -   您可以修改脚本以适应您的具体需求，例如批量上传、自定义标题、标签等。
-
-4.  **执行上传**:
-    运行修改后的示例脚本，例如：
-    ```bash
-    python examples/upload_video_to_douyin.py
-    ```
-
-## Docker 环境
-### 自己构建镜像
-1. **构建Docker镜像**:
-    ```
-   docker build -t social-auto-upload:latest .
-   ```
-2. **运行Docker容器**:
-    ```
-   docker run -d -it -p 5409:5409 social-auto-upload:latest
-   ```
-### 使用预构建镜像
-1. **拉取镜像**:
-    ```
-   docker pull gzxy/social-auto-upload:latest
-   ```
-2. **运行Docker容器**:
-    ```
-   docker run -d -it -p 5409:5409 gzxy/social-auto-upload:latest
-   ```
-启动容器后访问：[http://localhost:5409](http://localhost:5409)
-
-## 🐇项目背景
-
-该项目最初是我个人用于自动化管理社交媒体视频发布的工具。我的主要发布策略是提前一天设置定时发布，因此项目中很多定时发布相关的逻辑是基于“第二天”的时间进行计算的。
-
-如果您需要立即发布或其他定制化的发布策略，欢迎研究源码或在社区提问。
-
-## 📃详细文档
-
-更详细的文档和说明，请查看：[social-auto-upload 官方文档](https://sap-doc.nasdaddy.com/)
-
-## 🐾交流与支持
-
-[☕ Donate as u like](https://www.buymeacoffee.com/hysn2001m) - 如果您觉得这个项目对您有帮助，可以考虑赞助。
-
-如果您也是独立开发者、技术爱好者，对 #技术变现 #AI创业 #跨境电商 #自动化工具 #视频创作 等话题感兴趣，欢迎加入社群交流。
-
-### Creator
-
-<table>
-    <td align="center">
-        <a href="https://sap-doc.nasdaddy.com/">
-            <img src="media/mp.jpg" width="200px" alt="NasDaddy公众号"/>
-            <br />
-            <sub><b>微信公众号</b></sub>
-        </a>
-        <br />
-        <a href="https://github.com/dreammis/social-auto-upload/commits?author=dreammis" title="Code">💻</a>
-        <br />
-        关注公众号，后台回复 `上传` 获取加群方式
-    </td>
-    <td align="center">
-        <a href="https://sap-doc.nasdaddy.com/">
-            <img src="media/QR.png" width="200px" alt="赞赏码/入群引导"/>
-            <br />
-            <sub><b>交流群 (通过公众号获取)</b></sub>
-        </a>
-        <br />
-        <a href="https://sap-doc.nasdaddy.com/" title="Documentation">📖</a>
-        <br />
-        如果您觉得项目有用，可以考虑打赏支持一下
-    </td>
-</table>
-
-### Active Core Team
-
-<table>
-    <td align="center">
-        <a href="https://leedebug.github.io/">
-            <img src="media/edan-qrcode.png" width="200px" alt="Edan Lee"/>
-            <br />
-            <sub><b>Edan Lee</b></sub>
-        </a>
-        <br />
-        <a href="https://github.com/dreammis/social-auto-upload/commits?author=LeeDebug" title="Code">💻</a>
-        <a href="https://leedebug.github.io/" title="Documentation">📖</a>
-        <br />
-        封装了 api 接口和 web 前端管理界面
-        <br />
-        （请注明来意：进群、学习、企业咨询等）
-    </td>
-</table>
-
-## 🤝贡献指南
-
-欢迎各种形式的贡献，包括但不限于：
-
--   提交 Bug报告 和 Feature请求。
--   改进代码、文档。
--   分享使用经验和教程。
-
-如果您希望贡献代码，请遵循以下步骤：
-
-1.  Fork 本仓库。
-2.  创建一个新的分支 (`git checkout -b feature/YourFeature` 或 `bugfix/YourBugfix`)。
-3.  提交您的更改 (`git commit -m 'Add some feature'`)。
-4.  Push到您的分支 (`git push origin feature/YourFeature`)。
-5.  创建一个 Pull Request。
-
-## 📜许可证
-
-本项目暂时采用 [MIT License](LICENSE) 开源许可证。
-
-## ⭐Star-History
-
-> 如果这个项目对您有帮助，请给一个 ⭐ Star 以表示支持！
-
-[![Star History Chart](https://api.star-history.com/svg?repos=dreammis/social-auto-upload&type=Date)](https://star-history.com/#dreammis/social-auto-upload&Date)
+MIT License
