@@ -14,7 +14,7 @@ from utils.log import create_logger
 # 平台配置字典
 PLATFORM_CONFIGS = {
     "xiaohongshu": {
-        "platform_name": "小红书",
+        "platform_name": "xhs",
         "personal_url": "https://creator.xiaohongshu.com/new/home",
         "login_url": "https://creator.xiaohongshu.com/login",
         "creator_video_url": "https://creator.xiaohongshu.com/publish/publish?from=homepage&target=video&openFilePicker=true",
@@ -39,13 +39,43 @@ PLATFORM_CONFIGS = {
             "tags": True,
             "skip_cookie_verify": False
         }
-    }    
+    },
+    "tiktok": {
+        "platform_name": "tiktok",
+        "personal_url": "https://www.tiktok.com/",
+        "login_url": "https://www.tiktok.com/login",
+        "creator_video_url": "https://www.tiktok.com/upload/video",
+        "creator_image_url": "https://www.tiktok.com/upload/image",
+        "selectors": {
+            "upload_button": ['input.upload-input[type="file"]'],
+            "publish_button": ['div.d-button-content span.d-text:has-text("发布")'],
+            "title_editor": [
+                '[contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
+                '[aria-placeholder*="分享你的新鲜事"][contenteditable="true"]',
+                '[aria-label="Add a description"]',
+                '[aria-label="Write something..."]'
+            ],
+            "thumbnail_button": ["//span[contains(text(), 'Add')]", "//span[contains(text(), '添加')]"],
+            "schedule_button": ["//span[text()='Schedule']", "//span[text()='定时']"],
+            "date_input": '[aria-label="Date"]',
+            "time_input": '[aria-label="Time"]',
+        },
+        "features": {
+            "thumbnail": False,
+            "schedule": False,
+            "tags": True,
+            "skip_cookie_verify": False
+        }
+    },
+    
+
+    
 
     
 }
 
 
-class BaseVideoUploader(object):
+class BaseFileUploader(object):
     """
     通用视频上传器基类参数说明：
     account_file: 账号cookie文件路径
@@ -552,14 +582,14 @@ async def run_upload(platform, account_file, file_type, file_path, title, text, 
     """
     运行上传任务
     """
-    uploader = BaseVideoUploader(platform, account_file, file_type, file_path, title, text, tags, publish_date)
+    uploader = BaseFileUploader(platform, account_file, file_type, file_path, title, text, tags, publish_date)
     return await uploader.main()
 
 
 # 特定平台上传器类（用于向后兼容和特殊处理）
-# 小红书视频上传器
-class XiaohongshuVideo(BaseVideoUploader):
-    """小红书视频上传器"""
+# 小红书文件上传器
+class XiaohongshuFile(BaseFileUploader):
+    """小红书文件上传器"""
     def __init__(self, account_file, file_type, file_path, title, text, tags, publish_date):
         super().__init__("xiaohongshu", account_file, file_type, file_path, title, text, tags, publish_date)
 
