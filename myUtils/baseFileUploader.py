@@ -14,6 +14,7 @@ from utils.log import create_logger
 # 平台配置字典
 PLATFORM_CONFIGS = {
     "xiaohongshu": {
+        "type": 1,
         "platform_name": "xhs",
         "personal_url": "https://creator.xiaohongshu.com/new/home",
         "login_url": "https://creator.xiaohongshu.com/login",
@@ -40,7 +41,77 @@ PLATFORM_CONFIGS = {
             "skip_cookie_verify": False
         }
     },
+    "tencent": {
+        "type": 2,
+        "platform_name": "tc",
+        "personal_url": "https://channels.weixin.qq.com/platform/home",
+        "login_url": "https://channels.weixin.qq.com/login",
+        "creator_video_url": "https://channels.weixin.qq.com/platform/post/create",
+        "creator_image_url": "https://channels.weixin.qq.com/platform/post/create",
+        "selectors": {
+            "upload_button": ['input[type="file"]'],
+            "publish_button": ['div.form-btns button:has-text("发表")'],
+            "title_editor": ['div.input-editor'],
+            "thumbnail_button": ["//span[contains(text(), '添加封面')]"],
+            "schedule_button": ['label:has-text("定时")'],
+            "date_input": ['input[placeholder="请选择发表时间"]'],
+            "time_input": ['input[placeholder="请选择时间"]'],
+        },
+        "features": {
+            "thumbnail": False,
+            "schedule": True,
+            "tags": True,
+            "skip_cookie_verify": False
+        }
+    },
+    "douyin": {
+        "type": 3,
+        "platform_name": "dy",
+        "personal_url": "https://www.douyin.com/creator",
+        "login_url": "https://www.douyin.com/login",
+        "creator_video_url": "https://www.douyin.com/creator",
+        "creator_image_url": "https://www.douyin.com/creator",
+        "selectors": {
+            "upload_button": ['input[type="file"]'],
+            "publish_button": ['button:has-text("发布")'],
+            "title_editor": [".notranslate"],
+            "thumbnail_button": ["//span[contains(text(), '添加封面')]"],
+            "schedule_button": ['button:has-text("定时发布")'],
+            "date_input": ['.el-input__inner[placeholder="选择日期和时间"]'],
+            "time_input": ['.el-input__inner[placeholder="选择日期和时间"]'],
+        },
+        "features": {
+            "thumbnail": True,
+            "schedule": True,
+            "tags": True,
+            "skip_cookie_verify": False
+        }
+    },
+    "kuaishou": {
+        "type": 4,
+        "platform_name": "ks",
+        "personal_url": "https://cp.kuaishou.com/dashboard",
+        "login_url": "https://cp.kuaishou.com/login",
+        "creator_video_url": "https://cp.kuaishou.com/article/publish/video",
+        "creator_image_url": "https://cp.kuaishou.com/article/publish/image",
+        "selectors": {
+            "upload_button": ['button[class^="_upload-btn"]'],
+            "publish_button": ['text="发布"'],
+            "title_editor": ['div:has-text("描述") + div'],
+            "thumbnail_button": ["//span[contains(text(), '封面编辑')]"],
+            "schedule_button": ['label:text("发布时间") + div .ant-radio-input'],
+            "date_input": ['div.ant-picker-input input[placeholder="选择日期时间"]'],
+            "time_input": ['div.ant-picker-input input[placeholder="选择日期时间"]'],
+        },
+        "features": {
+            "thumbnail": True,
+            "schedule": True,
+            "tags": True,
+            "skip_cookie_verify": False
+        }
+    },
     "tiktok": {
+        "type": 5,
         "platform_name": "tk",
         "personal_url": "https://www.tiktok.com/",
         "login_url": "https://www.tiktok.com/login",
@@ -67,12 +138,13 @@ PLATFORM_CONFIGS = {
             "skip_cookie_verify": False
         }
     },
-    "bilibili": {
-        "platform_name": "bl",
-        "personal_url": "https://member.bilibili.com/v2#/home",
-        "login_url": "https://passport.bilibili.com/login",
-        "creator_video_url": "https://member.bilibili.com/v2#/upload/manual",
-        "creator_image_url": "https://member.bilibili.com/v2#/upload/manual",
+    "instagram": {
+        "type": 6,
+        "platform_name": "ig",
+        "personal_url": "https://www.instagram.com/",
+        "login_url": "https://www.instagram.com/accounts/login/",
+        "creator_video_url": "https://www.instagram.com/upload/video/",
+        "creator_image_url": "https://www.instagram.com/upload/image/",
         "selectors": {
             "upload_button": ['input[type="file"]'],
             "publish_button": ['button:has-text("提交")'],
@@ -89,20 +161,22 @@ PLATFORM_CONFIGS = {
             "skip_cookie_verify": False
         }
     },
-    "douyin": {
-        "platform_name": "dy",
-        "personal_url": "https://www.douyin.com/creator",
-        "login_url": "https://www.douyin.com/login",
-        "creator_video_url": "https://www.douyin.com/creator",
-        "creator_image_url": "https://www.douyin.com/creator",
+    #facebook
+    "facebook": {
+        "type": 7,
+        "platform_name": "fb",
+        "personal_url": "https://www.facebook.com/",
+        "login_url": "https://www.facebook.com/login",
+        "creator_video_url": "https://www.facebook.com/video/upload",
+        "creator_image_url": "https://www.facebook.com/photo/upload",
         "selectors": {
             "upload_button": ['input[type="file"]'],
             "publish_button": ['button:has-text("发布")'],
-            "title_editor": [".notranslate"],
+            "title_editor": ['#user_message'],
             "thumbnail_button": ["//span[contains(text(), '添加封面')]"],
             "schedule_button": ['button:has-text("定时发布")'],
-            "date_input": ['.el-input__inner[placeholder="选择日期和时间"]'],
-            "time_input": ['.el-input__inner[placeholder="选择日期和时间"]'],
+            "date_input": ['.date-picker-input'],
+            "time_input": ['.time-picker-input'],
         },
         "features": {
             "thumbnail": True,
@@ -111,42 +185,21 @@ PLATFORM_CONFIGS = {
             "skip_cookie_verify": False
         }
     },
-    "tencent": {
-        "platform_name": "tc",
-        "personal_url": "https://channels.weixin.qq.com/platform/home",
-        "login_url": "https://channels.weixin.qq.com/login",
-        "creator_video_url": "https://channels.weixin.qq.com/platform/post/create",
-        "creator_image_url": "https://channels.weixin.qq.com/platform/post/create",
+    "bilibili": {
+        "type": 8,
+        "platform_name": "bl",
+        "personal_url": "https://member.bilibili.com/v2#/home",
+        "login_url": "https://passport.bilibili.com/login",
+        "creator_video_url": "https://member.bilibili.com/v2#/upload/manual",
+        "creator_image_url": "https://member.bilibili.com/v2#/upload/manual",
         "selectors": {
             "upload_button": ['input[type="file"]'],
-            "publish_button": ['div.form-btns button:has-text("发表")'],
-            "title_editor": ['div.input-editor'],
+            "publish_button": ['button:has-text("发布")'],
+            "title_editor": ['#title'],
             "thumbnail_button": ["//span[contains(text(), '添加封面')]"],
-            "schedule_button": ['label:has-text("定时")'],
-            "date_input": ['input[placeholder="请选择发表时间"]'],
-            "time_input": ['input[placeholder="请选择时间"]'],
-        },
-        "features": {
-            "thumbnail": False,
-            "schedule": True,
-            "tags": True,
-            "skip_cookie_verify": False
-        }
-    },
-    "kuaishou": {
-        "platform_name": "ks",
-        "personal_url": "https://cp.kuaishou.com/dashboard",
-        "login_url": "https://cp.kuaishou.com/login",
-        "creator_video_url": "https://cp.kuaishou.com/article/publish/video",
-        "creator_image_url": "https://cp.kuaishou.com/article/publish/image",
-        "selectors": {
-            "upload_button": ['button[class^="_upload-btn"]'],
-            "publish_button": ['text="发布"'],
-            "title_editor": ['div:has-text("描述") + div'],
-            "thumbnail_button": ["//span[contains(text(), '封面编辑')]"],
-            "schedule_button": ['label:text("发布时间") + div .ant-radio-input'],
-            "date_input": ['div.ant-picker-input input[placeholder="选择日期时间"]'],
-            "time_input": ['div.ant-picker-input input[placeholder="选择日期时间"]'],
+            "schedule_button": ['button:has-text("定时发布")'],
+            "date_input": ['.date-picker-input'],
+            "time_input": ['.time-picker-input'],
         },
         "features": {
             "thumbnail": True,
@@ -155,7 +208,9 @@ PLATFORM_CONFIGS = {
             "skip_cookie_verify": False
         }
     },
+    #baijiahao
     "baijiahao": {
+        "type": 9,
         "platform_name": "bjh",
         "personal_url": "https://baijiahao.baidu.com/builder/rc/list",
         "login_url": "https://baijiahao.baidu.com/builder/rc/login",
@@ -164,7 +219,7 @@ PLATFORM_CONFIGS = {
         "selectors": {
             "upload_button": ['input[type="file"]'],
             "publish_button": ['button:has-text("发布")'],
-            "title_editor": ['#title'],
+            "title_editor": ['#user_message'],
             "thumbnail_button": ["//span[contains(text(), '添加封面')]"],
             "schedule_button": ['button:has-text("定时发布")'],
             "date_input": ['.date-picker-input'],

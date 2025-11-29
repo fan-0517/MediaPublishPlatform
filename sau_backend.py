@@ -519,7 +519,7 @@ def login():
     response.headers['Connection'] = 'keep-alive'
     return response
 
-@app.route('/postVideo', methods=['POST'])
+@app.route('/postVideo2', methods=['POST'])
 def postVideo():
     """
     参数说明：
@@ -589,8 +589,8 @@ def postVideo():
             "data": None
         }), 200
 
-@app.route('/postFile', methods=['POST'])
-def postFile():
+@app.route('/postVideo', methods=['POST'])
+def postVideo():
     """
     参数说明：
     type: 发布平台类型号，1-小红书 2-视频号 3-抖音 4-快手 5-tiktok 6-instagram 7-facebook
@@ -631,6 +631,29 @@ def postFile():
     # 打印获取到的数据（仅作为示例）
     print("File List:", file_list)
     print("Account List:", account_list)
+    #根据type获取platform
+    match type:
+        case 1:
+            platform = 'xiaohongshu'
+        case 2:
+            platform = 'tencent'
+        case 3:
+            platform = 'douyin'
+        case 4:
+            platform = 'kuaishou'
+        case 5:
+            platform = 'tiktok'
+        case 6:
+            platform = 'instagram'
+        case 7:
+            platform = 'facebook'
+        case _:
+            return jsonify({
+                "code": 400,
+                "msg": "Invalid type",
+                "data": None
+            }), 400
+
     post_file(platform, account_list, file_type, file_list, title, text, tags, enableTimer, videos_per_day, daily_times,start_days)
     # 返回响应给客户端
     return jsonify(
