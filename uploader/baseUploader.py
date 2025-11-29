@@ -9,18 +9,19 @@ from playwright.async_api import Playwright, async_playwright
 from conf import LOCAL_CHROME_PATH, LOCAL_CHROME_HEADLESS
 from utils.base_social_media import set_init_script
 from utils.files_times import get_absolute_path
-from utils.log import get_logger
+from utils.log import create_logger
 
 # 平台配置字典
 PLATFORM_CONFIGS = {
-    "facebook": {
-        "name": "Facebook",
-        "upload_url": "https://www.facebook.com/",
-        "personal_url": "https://www.facebook.com/profile.php",
-        "login_url": "https://www.facebook.com/",
+    "xiaohongshu": {
+        "platform_name": "小红书",
+        "personal_url": "https://creator.xiaohongshu.com/new/home",
+        "login_url": "https://creator.xiaohongshu.com/login",
+        "creator_video_url": "https://creator.xiaohongshu.com/publish/publish?from=homepage&target=video&openFilePicker=true",
+        "creator_image_url": "https://creator.xiaohongshu.com/publish/publish?from=homepage&target=image&openFilePicker=true",
         "selectors": {
-            "upload_button": ['div[aria-label="照片/视频"]', 'div[aria-label="Photo/Video"]'],
-            "publish_button": ['//span[text()="发帖"]', '//span[text()="Post"]', '//span[text()="Schedule"]', '//span[text()="发布"]'],
+            "upload_button": ['input.upload-input[type="file"]'],
+            "publish_button": ['div.d-button-content span.d-text:has-text("发布")'],
             "title_editor": [
                 '[contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
                 '[aria-placeholder*="分享你的新鲜事"][contenteditable="true"]',
@@ -33,11 +34,13 @@ PLATFORM_CONFIGS = {
             "time_input": '[aria-label="Time"]',
         },
         "features": {
-            "thumbnail": True,
-            "schedule": True,
+            "thumbnail": False,
+            "schedule": False,
             "tags": True
         }
-    }
+    }    
+
+    
 }
 
 
@@ -70,49 +73,32 @@ class BaseVideoUploader(object):
         self.config = PLATFORM_CONFIGS.get(self.platform)
         if not self.config:
             raise ValueError(f"不支持的平台: {self.platform}")
-        # 获取平台特定的日志器
-        self.logger = get_logger(f"{self.platform}_uploader")
 
         # URL constants
         # 平台名称
-        self.platform_name = "xhs"
+        self.platform_name = self.config["platform_name"]
         # 个人中心页面URL
-        self.personal_url = "https://creator.xiaohongshu.com/new/home"
+        self.personal_url = self.config["personal_url"]
         # 登录页面URL
-        self.login_url = "https://creator.xiaohongshu.com/login"
+        self.login_url = self.config["login_url"]
         # 视频上传页面URL
-        self.creator_video_url = "https://creator.xiaohongshu.com/publish/publish?from=homepage&target=video&openFilePicker=true"
+        self.creator_video_url = self.config["creator_video_url"]
         # 图文上传页面URL
-        self.creator_image_url = "https://creator.xiaohongshu.com/publish/publish?from=homepage&target=image&openFilePicker=true"
+        self.creator_image_url = self.config["creator_image_url"]
 
         # Selector lists
         # 上传按钮选择器
-        self.upload_button_selectors = [
-            'input.upload-input[type="file"]'
-        ]
+        self.upload_button_selectors = self.config["selectors"]["upload_button"]
         # 发布按钮选择器
-        self.publish_button_selectors = [
-            'div.d-button-content span.d-text:has-text("发布")'
-        ]
+        self.publish_button_selectors = self.config["selectors"]["publish_button"]
         # 错误信息选择器
-        self.error_selectors = [
-            'div:has-text("error"):visible',
-            'div:has-text("Error"):visible',
-            'div[class*="error"]:visible'
-        ]
+        self.error_selectors = self.config["selectors"]["error"]
         # 标题编辑器输入框选择器
-        self.editor_button_locators = [
-            'div.d-input.\--color-text-title.\--color-bg-fill input.d-text[type="text"]'
-        ]
+        self.editor_button_locators = self.config["selectors"]["title_editor"]
         # 正文编辑器输入框选择器
-        self.textbox_selectors = [
-            'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
-        ]
+        self.textbox_selectors = self.config["selectors"]["textbox"]
         # 发布时间选择器
-        self.schedule_button_selectors = [
-            "//span[text()='Schedule']",
-            "//span[text()='定时']"
-        ]
+        self.schedule_button_selectors = self.config["selectors"]["schedule_button"]
         
         
         # constants
@@ -559,69 +545,31 @@ class BaseVideoUploader(object):
 
 
 # 特定平台上传器类（用于向后兼容和特殊处理）
-class FacebookVideo(BaseVideoUploader):
-    """Facebook视频上传器"""
-    def __init__(self, title, file_path, tags, publish_date, account_file, thumbnail_path=None):
-        super().__init__("facebook", title, file_path, tags, publish_date, account_file, thumbnail_path)
-
-class YouTubeVideo(BaseVideoUploader):
-    """YouTube视频上传器"""
-    def __init__(self, title, file_path, tags, publish_date, account_file, thumbnail_path=None):
-        super().__init__("youtube", title, file_path, tags, publish_date, account_file, thumbnail_path)
-
-class TikTokVideo(BaseVideoUploader):
-    """TikTok视频上传器"""
-    def __init__(self, title, file_path, tags, publish_date, account_file, thumbnail_path=None):
-        super().__init__("tiktok", title, file_path, tags, publish_date, account_file, thumbnail_path)
+# 小红书视频上传器
+class XiaohongshuVideo(BaseVideoUploader):
+    """小红书视频上传器"""
+    def __init__(self, account_file, file_type, file_path, title, text, tags, publish_date):
+        super().__init__("xiaohongshu", account_file, file_type, file_path, title, text, tags, publish_date)
 
 
 # 工厂函数和便捷函数
-async def run_upload(platform, title, file_path, tags, publish_date, account_file, **kwargs):
+async def run_upload(platform, account_file, file_type, file_path, title, text, tags, publish_date, **kwargs):
     """
     运行上传任务
-    
-    Args:
-        platform (str): 平台名称 (facebook, youtube, tiktok等)
-        title (str): 视频标题
-        file_path (str): 视频文件路径
-        tags (str): 标签
-        publish_date (int): 发布时间戳
-        account_file (str): Cookie文件路径
-        **kwargs: 额外参数
     """
-    uploader = BaseVideoUploader(platform, title, file_path, tags, publish_date, account_file, **kwargs)
+    uploader = BaseVideoUploader(platform, account_file, file_type, file_path, title, text, tags, publish_date)
     return await uploader.main()
-
-# 特定平台的便捷函数
-async def upload_to_facebook(title, file_path, tags, publish_date, account_file, **kwargs):
-    """上传到Facebook的便捷函数"""
-    return await run_upload("facebook", title, file_path, tags, publish_date, account_file, **kwargs)
-
-async def upload_to_youtube(title, file_path, tags, publish_date, account_file, **kwargs):
-    """上传到YouTube的便捷函数"""
-    return await run_upload("youtube", title, file_path, tags, publish_date, account_file, **kwargs)
-
-async def upload_to_tiktok(title, file_path, tags, publish_date, account_file, **kwargs):
-    """上传到TikTok的便捷函数"""
-    return await run_upload("tiktok", title, file_path, tags, publish_date, account_file, **kwargs)
 
 
 if __name__ == "__main__":
     # 示例运行代码
-    asyncio.run(upload_to_facebook(
-        "测试视频",
-        "videos/demo.mp4",
-        "测试 标签",
-        0,  # 立即发布
-        "cookies/fb_cookie.json"
-    ))
-    
-    # 或者使用通用函数
     asyncio.run(run_upload(
-        "youtube",
-        "YouTube测试视频", 
+        "xiaohongshu",
+        "cookies/xhs_cookie.json",
+        2,  # 文件类型：2为视频
         "videos/demo.mp4",
-        "测试 YouTube 标签",
-        0,
-        "cookies/yt_cookie.json"
+        "测试视频标题",
+        "测试视频正文",
+        "测试 标签",
+        0  # 立即发布
     ))
