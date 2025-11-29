@@ -558,7 +558,7 @@ class InstagramVideo(object):
         Args:
             page: playwright页面对象
         """
-        max_wait_time = 300  # 最大等待时间（秒）
+        max_wait_time = 30  # 最大等待时间（秒）
         wait_time = 0
         
         while wait_time < max_wait_time:
@@ -624,6 +624,10 @@ class InstagramVideo(object):
                 
                 await asyncio.sleep(2)
                 wait_time += 2
+                #如果超过10s，刷新页面，重试
+                if wait_time >= 10:
+                    instagram_logger.info("  [-] 超过10s未完成上传，刷新页面重试...")
+                    await page.reload()
                 
                 # 检查是否有错误提示
                 error_elements = self.locator_base.locator('div:has-text("error"):visible, div:has-text("Error"):visible, div[class*="error"]:visible')
