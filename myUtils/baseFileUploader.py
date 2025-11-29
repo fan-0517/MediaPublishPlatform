@@ -14,30 +14,55 @@ from utils.log import create_logger
 # 平台配置字典
 PLATFORM_CONFIGS = {
     "xiaohongshu": {
+        #平台类型编号
         "type": 1,
+        #平台名称
         "platform_name": "xhs",
+        #平台个人中心URL
         "personal_url": "https://creator.xiaohongshu.com/new/home",
+        #平台登录URL
         "login_url": "https://creator.xiaohongshu.com/login",
+        #平台视频发布URL
         "creator_video_url": "https://creator.xiaohongshu.com/publish/publish?from=homepage&target=video&openFilePicker=true",
+        #平台图片发布URL
         "creator_image_url": "https://creator.xiaohongshu.com/publish/publish?from=homepage&target=image&openFilePicker=true",
         "selectors": {
+            #上传按钮选择器
             "upload_button": ['input.upload-input[type="file"]'],
+            #发布按钮选择器
             "publish_button": ['div.d-button-content span.d-text:has-text("发布")'],
+            #标题编辑器选择器   
             "title_editor": [
                 '[contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
                 '[aria-placeholder*="分享你的新鲜事"][contenteditable="true"]',
                 '[aria-label="Add a description"]',
                 '[aria-label="Write something..."]'
             ],
+            #正文编辑器输入框选择器
+            "textbox_selectors": [
+                'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]',
+                'div#work-description-edit[contenteditable="true"]',
+                'div._description_eho7l_59[contenteditable="true"]',
+                '[contenteditable="true"][placeholder*="添加合适的话题和描述"]',
+                '[contenteditable="true"][id*="description"][class*="description"]'
+            ],
+            #封面按钮选择器
             "thumbnail_button": ["//span[contains(text(), 'Add')]", "//span[contains(text(), '添加')]"],
+            #定时按钮选择器
             "schedule_button": ["//span[text()='Schedule']", "//span[text()='定时']"],
+            #日期输入选择器
             "date_input": '[aria-label="Date"]',
+            #时间输入选择器
             "time_input": '[aria-label="Time"]',
         },
         "features": {
+            #是否支持封面
             "thumbnail": False,
+            #是否支持定时发布
             "schedule": False,
+            #是否支持标签
             "tags": True,
+            #是否跳过Cookie验证 
             "skip_cookie_verify": False
         }
     },
@@ -52,6 +77,10 @@ PLATFORM_CONFIGS = {
             "upload_button": ['input[type="file"]'],
             "publish_button": ['div.form-btns button:has-text("发表")'],
             "title_editor": ['div.input-editor'],
+            #正文编辑器输入框选择器
+            "textbox_selectors": [
+                'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
+            ],
             "thumbnail_button": ["//span[contains(text(), '添加封面')]"],
             "schedule_button": ['label:has-text("定时")'],
             "date_input": ['input[placeholder="请选择发表时间"]'],
@@ -75,6 +104,10 @@ PLATFORM_CONFIGS = {
             "upload_button": ['input[type="file"]'],
             "publish_button": ['button:has-text("发布")'],
             "title_editor": [".notranslate"],
+            #正文编辑器输入框选择器
+            "textbox_selectors": [
+                'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
+            ],
             "thumbnail_button": ["//span[contains(text(), '添加封面')]"],
             "schedule_button": ['button:has-text("定时发布")'],
             "date_input": ['.el-input__inner[placeholder="选择日期和时间"]'],
@@ -91,13 +124,18 @@ PLATFORM_CONFIGS = {
         "type": 4,
         "platform_name": "ks",
         "personal_url": "https://cp.kuaishou.com/dashboard",
-        "login_url": "https://cp.kuaishou.com/login",
-        "creator_video_url": "https://cp.kuaishou.com/article/publish/video",
-        "creator_image_url": "https://cp.kuaishou.com/article/publish/image",
+        "login_url": "https://passport.kuaishou.com/pc/account/login",
+        "creator_video_url": "https://cp.kuaishou.com/article/publish/video?tabType=1",
+        "creator_image_url": "https://cp.kuaishou.com/article/publish/video?tabType=2",
         "selectors": {
-            "upload_button": ['button[class^="_upload-btn"]'],
+            "upload_button": ['button:has-text("上传图片")', 'button:has-text("上传视频")', 'button._upload-btn_ysbff_57', 'button[class^="_upload-btn"]'],
             "publish_button": ['text="发布"'],
+            #标题编辑器选择器
             "title_editor": ['div:has-text("描述") + div'],
+            #正文编辑器输入框选择器
+            "textbox_selectors": [
+                'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
+            ],
             "thumbnail_button": ["//span[contains(text(), '封面编辑')]"],
             "schedule_button": ['label:text("发布时间") + div .ant-radio-input'],
             "date_input": ['div.ant-picker-input input[placeholder="选择日期时间"]'],
@@ -126,6 +164,10 @@ PLATFORM_CONFIGS = {
                 '[aria-label="Add a description"]',
                 '[aria-label="Write something..."]'
             ],
+            #正文编辑器输入框选择器
+            "textbox_selectors": [
+                'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
+            ],
             "thumbnail_button": ["//span[contains(text(), 'Add')]", "//span[contains(text(), '添加')]"],
             "schedule_button": ["//span[text()='Schedule']", "//span[text()='定时']"],
             "date_input": '[aria-label="Date"]',
@@ -149,6 +191,10 @@ PLATFORM_CONFIGS = {
             "upload_button": ['input[type="file"]'],
             "publish_button": ['button:has-text("提交")'],
             "title_editor": ['#video_upload > div > div:nth-child(2) > div > div.title > div.input-box > input'],
+            #正文编辑器输入框选择器
+            "textbox_selectors": [
+                'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
+            ],
             "thumbnail_button": ["//span[contains(text(), '选择封面')]"],
             "schedule_button": ['#video_upload > div > div:nth-child(2) > div > div.time > div > div > div:nth-child(2) > label'],
             "date_input": ['#video_upload > div > div:nth-child(2) > div > div.time > div > div > div:nth-child(2) > div > input'],
@@ -172,7 +218,12 @@ PLATFORM_CONFIGS = {
         "selectors": {
             "upload_button": ['input[type="file"]'],
             "publish_button": ['button:has-text("发布")'],
+            #标题编辑器选择器
             "title_editor": ['#user_message'],
+            #正文编辑器输入框选择器
+            "textbox_selectors": [
+                'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
+            ],
             "thumbnail_button": ["//span[contains(text(), '添加封面')]"],
             "schedule_button": ['button:has-text("定时发布")'],
             "date_input": ['.date-picker-input'],
@@ -195,7 +246,12 @@ PLATFORM_CONFIGS = {
         "selectors": {
             "upload_button": ['input[type="file"]'],
             "publish_button": ['button:has-text("发布")'],
+            #标题编辑器选择器
             "title_editor": ['#title'],
+            #正文编辑器输入框选择器
+            "textbox_selectors": [
+                'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
+            ],
             "thumbnail_button": ["//span[contains(text(), '添加封面')]"],
             "schedule_button": ['button:has-text("定时发布")'],
             "date_input": ['.date-picker-input'],
@@ -219,7 +275,12 @@ PLATFORM_CONFIGS = {
         "selectors": {
             "upload_button": ['input[type="file"]'],
             "publish_button": ['button:has-text("发布")'],
+            #标题编辑器选择器
             "title_editor": ['#user_message'],
+            #正文编辑器输入框选择器
+            "textbox_selectors": [
+                'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
+            ],
             "thumbnail_button": ["//span[contains(text(), '添加封面')]"],
             "schedule_button": ['button:has-text("定时发布")'],
             "date_input": ['.date-picker-input'],
