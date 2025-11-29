@@ -40,11 +40,7 @@ PLATFORM_CONFIGS = {
             ],
             #正文编辑器输入框选择器
             "textbox_selectors": [
-                'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]',
-                'div#work-description-edit[contenteditable="true"]',
-                'div._description_eho7l_59[contenteditable="true"]',
-                '[contenteditable="true"][placeholder*="添加合适的话题和描述"]',
-                '[contenteditable="true"][id*="description"][class*="description"]'
+                'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
             ],
             #封面按钮选择器
             "thumbnail_button": ["//span[contains(text(), 'Add')]", "//span[contains(text(), '添加')]"],
@@ -129,12 +125,16 @@ PLATFORM_CONFIGS = {
         "creator_image_url": "https://cp.kuaishou.com/article/publish/video?tabType=2",
         "selectors": {
             "upload_button": ['button:has-text("上传图片")', 'button:has-text("上传视频")', 'button._upload-btn_ysbff_57', 'button[class^="_upload-btn"]'],
-            "publish_button": ['text="发布"'],
+            "publish_button": ['div._button_3a3lq_1._button-primary_3a3lq_60:has-text("发布")', 'div:has-text("发布")', 'text="发布"'],
             #标题编辑器选择器
             "title_editor": ['div:has-text("描述") + div'],
             #正文编辑器输入框选择器
             "textbox_selectors": [
-                'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
+                'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]',
+                'div#work-description-edit[contenteditable="true"]',
+                'div._description_eho7l_59[contenteditable="true"]',
+                '[contenteditable="true"][placeholder*="添加合适的话题和描述"]',
+                '[contenteditable="true"][id*="description"][class*="description"]'
             ],
             "thumbnail_button": ["//span[contains(text(), '封面编辑')]"],
             "schedule_button": ['label:text("发布时间") + div .ant-radio-input'],
