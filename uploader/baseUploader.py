@@ -36,7 +36,8 @@ PLATFORM_CONFIGS = {
         "features": {
             "thumbnail": False,
             "schedule": False,
-            "tags": True
+            "tags": True,
+            "skip_cookie_verify": False
         }
     }    
 
@@ -105,7 +106,7 @@ class BaseVideoUploader(object):
         # 日志记录器
         self.logger = create_logger (self.platform_name, f'logs/{self.platform_name}.log')
         # 是否跳过验证cookie有效性
-        self.skip_cookie_verify = True
+        self.skip_cookie_verify = self.config["features"]["skip_cookie_verify"]
         # 视频/图文发布状态
         self.publish_status = False
         #按钮等待可见超时时间
@@ -544,12 +545,6 @@ class BaseVideoUploader(object):
             raise FileNotFoundError(f"Cookie文件不存在: {account_file}")
 
 
-# 特定平台上传器类（用于向后兼容和特殊处理）
-# 小红书视频上传器
-class XiaohongshuVideo(BaseVideoUploader):
-    """小红书视频上传器"""
-    def __init__(self, account_file, file_type, file_path, title, text, tags, publish_date):
-        super().__init__("xiaohongshu", account_file, file_type, file_path, title, text, tags, publish_date)
 
 
 # 工厂函数和便捷函数
@@ -559,6 +554,14 @@ async def run_upload(platform, account_file, file_type, file_path, title, text, 
     """
     uploader = BaseVideoUploader(platform, account_file, file_type, file_path, title, text, tags, publish_date)
     return await uploader.main()
+
+
+# 特定平台上传器类（用于向后兼容和特殊处理）
+# 小红书视频上传器
+class XiaohongshuVideo(BaseVideoUploader):
+    """小红书视频上传器"""
+    def __init__(self, account_file, file_type, file_path, title, text, tags, publish_date):
+        super().__init__("xiaohongshu", account_file, file_type, file_path, title, text, tags, publish_date)
 
 
 if __name__ == "__main__":
