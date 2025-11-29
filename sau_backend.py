@@ -12,6 +12,7 @@ from flask import Flask, request, jsonify, Response, send_from_directory
 from conf import BASE_DIR
 from myUtils.login import douyin_cookie_gen, get_tencent_cookie, get_ks_cookie, xiaohongshu_cookie_gen, get_tiktok_cookie, get_instagram_cookie, get_facebook_cookie
 from myUtils.postVideo import post_video_tencent, post_video_DouYin, post_video_ks, post_video_xhs, post_video_TikTok, post_video_Instagram, post_video_Facebook
+from myUtils.multiFileUploader import post_file
 
 active_queues = {}
 app = Flask(__name__)
@@ -580,6 +581,57 @@ def postVideo():
         case 7:
             post_video_Facebook(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
                       start_days, thumbnail_path)
+    # 返回响应给客户端
+    return jsonify(
+        {
+            "code": 200,
+            "msg": None,
+            "data": None
+        }), 200
+
+@app.route('/postFile', methods=['POST'])
+def postFile():
+    """
+    参数说明：
+    type: 发布平台类型号，1-小红书 2-视频号 3-抖音 4-快手 5-tiktok 6-instagram 7-facebook
+    platform: 发布平台类型，1-xiaohongshu 2- tencent 3-douyin 4-kuaishou 5-tiktok 6-instagram 7-facebook
+    accountList: 账号列表，每个元素为一个字典，包含账号信息
+    fileType: 文件类型，默认值为2：1-图文 2-视频
+    title: 文件标题
+    text: 文件正文描述
+    tags: 文件标签，逗号分隔
+    category: 文件分类，0-无分类 1-美食 2-日常 3-旅行 4-娱乐 5-教育 6-其他
+    enableTimer: 是否启用定时发布，0-否 1-是
+    videosPerDay: 每天发布文件数量
+    dailyTimes: 每天发布时间，逗号分隔，格式为HH:MM
+    startDays: 开始发布时间，距离当前时间的天数，负数表示之前的时间
+
+    """
+    # 获取JSON数据的POST请求体
+    data = request.get_json()
+    type = data.get('type') #发布平台类型，1-小红书 2-视频号 3-抖音 4-快手 5-tiktok 6-instagram 7-facebook
+    platform = data.get('platform') #发布平台类型，1-小红书 2-视频号 3-抖音 4-快手 5-tiktok 6-instagram 7-facebook
+    account_list = data.get('accountList', []) #账号列表，每个元素为一个字典，包含账号信息
+    file_type = data.get('fileType')  #文件类型，默认值为2：1-图文 2-视频
+    file_list = data.get('fileList', []) #文件列表，每个元素为一个字典，包含文件路径和文件名
+    title = data.get('title') #文件标题
+    text = data.get('text') #文件正文描述，默认值为demo
+    tags = data.get('tags') #文件标签，逗号分隔
+    category = data.get('category') #文件分类，0-无分类 1-美食 2-日常 3-旅行 4-娱乐 5-教育 6-其他
+    if category == 0:
+        category = None
+    thumbnail_path = data.get('thumbnail', '') #视频缩略图封面路径
+    productLink = data.get('productLink', '') #商品链接
+    productTitle = data.get('productTitle', '') #商品标题
+    is_draft = data.get('isDraft', False)  # 是否保存为草稿
+    enableTimer = data.get('enableTimer') #是否启用定时发布，0-否 1-是
+    videos_per_day = data.get('videosPerDay') #每天发布文件数量
+    daily_times = data.get('dailyTimes') #每天发布时间，逗号分隔，格式为HH:MM
+    start_days = data.get('startDays') #开始发布时间，距离当前时间的天数，负数表示之前的时间
+    # 打印获取到的数据（仅作为示例）
+    print("File List:", file_list)
+    print("Account List:", account_list)
+    post_file(platform, account_list, file_type, file_list, title, text, tags, enableTimer, videos_per_day, daily_times,start_days)
     # 返回响应给客户端
     return jsonify(
         {

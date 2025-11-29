@@ -8,6 +8,7 @@ def post_file(platform, account_file, file_type, files, title, text,tags,enableT
     """
     发布文件到各种平台
     参数:
+        platform: 平台名称
         account_file: 账号文件列表
         file_type: 文件类型，1-图文 2-视频
         files: 文件列表
@@ -38,18 +39,17 @@ def post_file(platform, account_file, file_type, files, title, text,tags,enableT
                     asyncio.run(app.main(), debug=False)
                     #是否成功发布
                     if app.publish_success:
-                        logger.info(f"{platform}文件{file.name}发布成功")
+                        app.logger.info(f"{platform}文件{file.name}发布成功")
                     else:
-                        logger.error(f"{platform}文件{file.name}发布失败")
+                        app.logger.error(f"{platform}文件{file.name}发布失败")
                     #任务进度
-                    logger.info(f"{platform}已发布{index+1}/{file_num}个文件")
+                    app.logger.info(f"{platform}已发布{index+1}/{file_num}个文件")
                     #全部发布完毕后
                     if index+1 == file_num:
-                        logger.info(f"{platform}所有文件发布完成")
+                        app.logger.info(f"{platform}所有文件发布完成")
                 except Exception as e:
-                    logger.error(f"{platform}文件{file.name}发布失败: {str(e)}")
+                    app.logger.error(f"{platform}文件{file.name}发布失败: {str(e)}")
                     # 继续尝试其他账号或文件，不中断整个流程
     except Exception as e:
-        logger.error(f"{platform}文件{file.name}发布过程中发生异常: {str(e)}")
-        # 抛出异常，让调用方处理
+        app.logger.error(f"{platform}文件{file.name}发布过程中发生异常: {str(e)}")
         raise
