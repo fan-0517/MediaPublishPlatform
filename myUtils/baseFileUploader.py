@@ -525,15 +525,26 @@ class BaseFileUploader(object):
             self.logger.info("平台个人中心页面DOM加载完成")
             
             try:
-                # 检查是否登录成功（如果成功跳转到个人中心页面的url）
-                current_url = page.url
-                self.logger.info(f"当前页面URL: {current_url}")
-                if self.personal_url in current_url:
-                    self.logger.info("Cookie有效")
-                    return True
+                #douyin平台判断方式比较特殊
+                if self.platform_name == "dy":
+                    # 检查是否登录成功
+                    if await page.get_by_text('登录/注册').count() or await page.get_by_text('扫码登录').count() or await page.get_by_placeholder('请输入手机号').count() or await page.locator('input[name="normal-input"]').count():
+                        print("Cookie已过期")
+                        return False
+                    else:
+                        print("cookie有效")
+                        return True
                 else:
-                    self.logger.error("Cookie已过期")
-                    return False
+                    #其他平台采用通用模式
+                    # 检查是否登录成功（如果成功跳转到个人中心页面的url）
+                    current_url = page.url
+                    self.logger.info(f"当前页面URL: {current_url}")
+                    if self.personal_url in current_url:
+                        self.logger.info("Cookie有效")
+                        return True
+                    else:
+                        self.logger.error("Cookie已过期")
+                        return False
 
             except Exception as e:
                 self.logger.error(f"Cookie验证失败: {str(e)}")
@@ -564,7 +575,7 @@ class BaseFileUploader(object):
             await page.goto(self.login_url, wait_until='domcontentloaded', timeout=timeout)
             await page.pause()
             # 等待用户登录完成
-            self.logger.info("请在浏览器中登录小红书账号")
+            self.logger.info(f"请在浏览器中登录{self.platform_name}账号")
             await page.wait_for_timeout(login_wait_timeout)
             # 保存cookie
             await context.storage_state(path=account_file)

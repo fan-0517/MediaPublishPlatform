@@ -18,7 +18,7 @@ PLATFORM_CONFIGS = {
             "upload_button": ['input.upload-input[type="file"]'],
             #发布按钮选择器
             "publish_button": ['div.d-button-content span.d-text:has-text("发布")'],
-            #标题编辑器选择器   
+            #标题编辑器选择器
             "title_editor": [
                 '[contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
                 '[aria-placeholder*="分享你的新鲜事"][contenteditable="true"]',
@@ -64,9 +64,9 @@ PLATFORM_CONFIGS = {
         "creator_video_url": "https://channels.weixin.qq.com/platform/post/create",
         "creator_image_url": "https://channels.weixin.qq.com/platform/post/create",
         "selectors": {
-            "upload_button": ['input[type="file"]'],
-            "publish_button": ['div.form-btns button:has-text("发表")'],
-            "title_editor": ['div.input-editor'],
+            "upload_button": ['span.semi-button-content-right:has-text("上传视频")'],
+            "publish_button": ['button.button-dhlUZE:has-text("发布")'],
+            "title_editor": ['input.semi-input.semi-input-default'],
             #正文编辑器输入框选择器
             "textbox_selectors": [
                 'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
@@ -97,18 +97,15 @@ PLATFORM_CONFIGS = {
     "douyin": {
         "type": 3,
         "platform_name": "dy",
-        "personal_url": "https://www.douyin.com/creator",
-        "login_url": "https://www.douyin.com/login",
-        "creator_video_url": "https://www.douyin.com/creator",
-        "creator_image_url": "https://www.douyin.com/creator",
+        "personal_url": "https://creator.douyin.com/creator-micro/home",
+        "login_url": "https://creator.douyin.com/login",
+        "creator_video_url": "https://creator.douyin.com/creator-micro/content/upload",
+        "creator_image_url": "https://creator.douyin.com/creator-micro/content/upload?default-tab=3",
         "selectors": {
-            "upload_button": ['input[type="file"]'],
-            "publish_button": ['button:has-text("发布")'],
-            "title_editor": [".notranslate"],
-            #正文编辑器输入框选择器
-            "textbox_selectors": [
-                'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
-            ],
+            "upload_button": ['span.semi-button-content-right:has-text("上传视频")'],
+            "publish_button": ['div.form-btns button:has-text("发表")'],
+            "title_editor": ['input.semi-input.semi-input-default'],
+            "textbox_selectors": ['div.zone-container.editor-kit-container.editor.editor-comp-publish[contenteditable="true"]'],
             "thumbnail_button": ["//span[contains(text(), '添加封面')]"],
             "schedule_button": ['button:has-text("定时发布")'],
             "date_input": ['.el-input__inner[placeholder="选择日期和时间"]'],
