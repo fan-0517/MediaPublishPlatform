@@ -42,6 +42,8 @@ PLATFORM_CONFIGS = {
             # 平台功能支持
             #是否跳过Cookie验证
             "skip_cookie_verify": True,
+            #是否支持图文发布
+            "image_publish": True,
             #是否支持标题
             "title": True,
             #是否支持正文
@@ -67,7 +69,6 @@ PLATFORM_CONFIGS = {
             "upload_button": ['span.add-icon.weui-icon-outlined-add', 'div.upload-content'],
             "publish_button": ['button.weui-desktop-btn.weui-desktop-btn_primary:has-text("发表")', 'button.weui-desktop-btn:has-text("发表")'],
             "title_editor": ['input.weui-desktop-form__input[placeholder="概括视频主要内容，字数建议6-16个字符"]'],
-            #正文编辑器输入框选择器
             "textbox_selectors": [
                 'div.input-editor[contenteditable=""][data-placeholder="添加描述"]'
             ],
@@ -80,6 +81,8 @@ PLATFORM_CONFIGS = {
             # 平台功能支持
             #是否跳过Cookie验证
             "skip_cookie_verify": True,
+            #是否支持图文发布
+            "image_publish": True,
             #是否支持标题
             "title": True,
             #是否支持正文
@@ -102,10 +105,10 @@ PLATFORM_CONFIGS = {
         "creator_video_url": "https://creator.douyin.com/creator-micro/content/upload",
         "creator_image_url": "https://creator.douyin.com/creator-micro/content/upload?default-tab=3",
         "selectors": {
-            "upload_button": ['span.semi-button-content-right:has-text("上传视频")'],
-            "publish_button": ['div.form-btns button:has-text("发表")'],
-            "title_editor": ['input.semi-input.semi-input-default'],
-            "textbox_selectors": ['div.zone-container.editor-kit-container.editor.editor-comp-publish[contenteditable="true"]'],
+            "upload_button": ['span.semi-button-content-right:has-text("上传视频")', 'span.semi-button-content-right:has-text("上传图文")'],
+            "publish_button": ['role=button[name="发布"]', 'button:has-text("发布"):not(:has-text("高清发布"))', 'text="发布"'],
+            "title_editor": ['input[placeholder="填写作品标题，为作品获得更多流量"]', 'input.semi-input.semi-input-default'],
+            "textbox_selectors": ['div[data-line-wrapper="true"]', 'div.zone-container.editor-kit-container.editor.editor-comp-publish[contenteditable="true"]'],
             "thumbnail_button": ["//span[contains(text(), '添加封面')]"],
             "schedule_button": ['button:has-text("定时发布")'],
             "date_input": ['.el-input__inner[placeholder="选择日期和时间"]'],
@@ -115,6 +118,8 @@ PLATFORM_CONFIGS = {
             # 平台功能支持
             #是否跳过Cookie验证
             "skip_cookie_verify": True,
+            #是否支持图文发布
+            "image_publish": True,
             #是否支持标题
             "title": True,
             #是否支持正文
@@ -137,15 +142,15 @@ PLATFORM_CONFIGS = {
         "creator_video_url": "https://cp.kuaishou.com/article/publish/video?tabType=1",
         "creator_image_url": "https://cp.kuaishou.com/article/publish/video?tabType=2",
         "selectors": {
-            "upload_button": ['button:has-text("上传图片")', 'button:has-text("上传视频")', 'button._upload-btn_ysbff_57', 'button[class^="_upload-btn"]'],
+            "upload_button": ['button:has-text("上传图片")', 'button:has-text("上传视频")'],
             "publish_button": ['div._button_3a3lq_1._button-primary_3a3lq_60:has-text("发布")', 'div:has-text("发布")', 'text="发布"'],
             #标题编辑器选择器
             "title_editor": ['div:has-text("描述") + div'],
             #正文编辑器输入框选择器
             "textbox_selectors": [
+                'div:has-text("描述") + div',
                 'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]',
                 'div#work-description-edit[contenteditable="true"]',
-                'div._description_eho7l_59[contenteditable="true"]',
                 '[contenteditable="true"][placeholder*="添加合适的话题和描述"]',
                 '[contenteditable="true"][id*="description"][class*="description"]'
             ],
@@ -158,8 +163,10 @@ PLATFORM_CONFIGS = {
             # 平台功能支持
             #是否跳过Cookie验证
             "skip_cookie_verify": True,
+            #是否支持图文发布
+            "image_publish": True,
             #是否支持标题
-            "title": True,
+            "title": False,
             #是否支持正文
             "textbox": True,
             #是否支持标签
@@ -176,23 +183,18 @@ PLATFORM_CONFIGS = {
         "type": 5,
         "platform_name": "tk",
         "personal_url": "https://www.tiktok.com/",
-        "login_url": "https://www.tiktok.com/login",
-        "creator_video_url": "https://www.tiktok.com/upload/video",
-        "creator_image_url": "https://www.tiktok.com/upload/image",
+        "login_url": "https://www.tiktok.com/login?lang=en",
+        "creator_video_url": "https://www.tiktok.com/tiktokstudio/upload?lang=en",
+        "creator_image_url": "https://www.tiktok.com/tiktokstudio/upload?lang=en",
         "selectors": {
-            "upload_button": ['input.upload-input[type="file"]'],
-            "publish_button": ['div.d-button-content span.d-text:has-text("发布")'],
-            "title_editor": [
-                '[contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
-                '[aria-placeholder*="分享你的新鲜事"][contenteditable="true"]',
-                '[aria-label="Add a description"]',
-                '[aria-label="Write something..."]'
-            ],
-            #正文编辑器输入框选择器
+            "upload_button": ['button:has-text("Select video"):visible'],
+            "publish_button": ['button[data-e2e="post_video_button"]', 'button:has-text("Post")', 'role=button[name="Post"]'],
+            "title_editor": ['div.public-DraftEditor-content'],
             "textbox_selectors": [
-                'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
+                'div.public-DraftEditor-content[contenteditable="true"]',
+                'div.caption-editor'
             ],
-            "thumbnail_button": ["//span[contains(text(), 'Add')]", "//span[contains(text(), '添加')]"],
+            "thumbnail_button": [".cover-container"],
             "schedule_button": ["//span[text()='Schedule']", "//span[text()='定时']"],
             "date_input": '[aria-label="Date"]',
             "time_input": '[aria-label="Time"]',
@@ -201,8 +203,10 @@ PLATFORM_CONFIGS = {
             # 平台功能支持
             #是否跳过Cookie验证
             "skip_cookie_verify": True,
+            #是否支持图文发布
+            "image_publish": False,
             #是否支持标题
-            "title": True,
+            "title": False,
             #是否支持正文
             "textbox": True,
             #是否支持标签
@@ -218,14 +222,14 @@ PLATFORM_CONFIGS = {
     "instagram": {
         "type": 6,
         "platform_name": "ig",
-        "personal_url": "https://www.instagram.com/",
+        "personal_url": "https://www.instagram.com/me/",
         "login_url": "https://www.instagram.com/accounts/login/",
-        "creator_video_url": "https://www.instagram.com/upload/video/",
-        "creator_image_url": "https://www.instagram.com/upload/image/",
+        "creator_video_url": "https://business.facebook.com/latest/composer",
+        "creator_image_url": "https://business.facebook.com/latest/composer",
         "selectors": {
-            "upload_button": ['input[type="file"]'],
-            "publish_button": ['button:has-text("提交")'],
-            "title_editor": ['#video_upload > div > div:nth-child(2) > div > div.title > div.input-box > input'],
+            "upload_button": ['div[role="button"]:has-text("Add photo/video")'],
+            "publish_button": ['*[role="button"]:has(:text("Publish"))'],
+            "title_editor": ['div[role="combobox"][contenteditable="true"][aria-label*="Write into the dialogue box"]'],
             #正文编辑器输入框选择器
             "textbox_selectors": [
                 'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
@@ -239,6 +243,8 @@ PLATFORM_CONFIGS = {
             # 平台功能支持
             #是否跳过Cookie验证
             "skip_cookie_verify": True,
+            #是否支持图文发布
+            "image_publish": True,
             #是否支持标题
             "title": True,
             #是否支持正文
@@ -257,21 +263,27 @@ PLATFORM_CONFIGS = {
     "facebook": {
         "type": 7,
         "platform_name": "fb",
-        "personal_url": "https://www.facebook.com/",
+        "personal_url": "https://www.facebook.com/profile.php",
         "login_url": "https://www.facebook.com/login",
-        "creator_video_url": "https://www.facebook.com/video/upload",
-        "creator_image_url": "https://www.facebook.com/photo/upload",
+        "creator_video_url": "https://www.facebook.com/",
+        "creator_image_url": "https://www.facebook.com/",
         "selectors": {
-            "upload_button": ['input[type="file"]'],
-            "publish_button": ['button:has-text("发布")'],
+            "upload_button": ['div[aria-label="照片/视频"]','div[aria-label="Photo/Video"]'],
+            "publish_button": ['//span[text()="发帖"]','//span[text()="Post"]','//span[text()="Schedule"]','//span[text()="发布"]'],
             #标题编辑器选择器
-            "title_editor": ['#user_message'],
+            "title_editor": [          
+                # 中文界面选择器
+                '[contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
+                '[aria-placeholder*="分享你的新鲜事"][contenteditable="true"]',
+                # 英文界面选择器
+                '[aria-label="Add a description"]',
+                '[aria-label="Write something..."]'],
             #正文编辑器输入框选择器
             "textbox_selectors": [
                 'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
             ],
-            "thumbnail_button": ["//span[contains(text(), '添加封面')]"],
-            "schedule_button": ['button:has-text("定时发布")'],
+            "thumbnail_button": ["//span[contains(text(), 'Add')]","//span[contains(text(), '添加')]"],
+            "schedule_button": ["//span[text()='Schedule']","//span[text()='定时']"],
             "date_input": ['.date-picker-input'],
             "time_input": ['.time-picker-input'],
         },
@@ -279,10 +291,12 @@ PLATFORM_CONFIGS = {
             # 平台功能支持
             #是否跳过Cookie验证
             "skip_cookie_verify": True,
+            #是否支持图文发布
+            "image_publish": True,
             #是否支持标题
             "title": True,
             #是否支持正文
-            "textbox": True,
+            "textbox": False,
             #是否支持标签
             "tags": True,
             #是否支持封面
@@ -318,6 +332,8 @@ PLATFORM_CONFIGS = {
             # 平台功能支持
             #是否跳过Cookie验证
             "skip_cookie_verify": True,
+            #是否支持图文发布
+            "image_publish": True,
             #是否支持标题
             "title": True,
             #是否支持正文
@@ -358,6 +374,8 @@ PLATFORM_CONFIGS = {
             # 平台功能支持
             #是否跳过Cookie验证
             "skip_cookie_verify": True,
+            #是否支持图文发布
+            "image_publish": True,
             #是否支持标题
             "title": True,
             #是否支持正文

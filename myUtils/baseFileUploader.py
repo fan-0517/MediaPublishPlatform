@@ -164,91 +164,109 @@ class BaseFileUploader(object):
 
         # 3.执行平台上传视频
         async with async_playwright() as playwright:
-            await self.upload(playwright)
-
-        self.logger.info(f"{self.platform_name}视频上传成功: {self.title}")
-        return self.publish_status
+            upload_result = await self.upload(playwright)
+            if not upload_result:
+                self.logger.error(f"{self.platform_name}视频上传失败: {self.title}")
+                return False
+            else:
+                self.logger.info(f"{self.platform_name}视频上传成功: {self.title}")
+                return True
 
     async def upload(self, playwright: Playwright) -> None:
         """
         作用：执行单个视频上传到某个平台
         """
-        self.logger.info(f'开始上传视频: {self.title}')
-        # step1.创建浏览器实例
-        browser = await playwright.chromium.launch(
-            headless=self.headless, 
-            executable_path=self.local_executable_path
-        )
-        self.logger.info(f"step1: {self.platform_name}浏览器实例创建成功")
+        try:
+            self.logger.info(f'开始上传视频: {self.title}')
+            # step1.创建浏览器实例
+            browser = await playwright.chromium.launch(
+                headless=self.headless, 
+                executable_path=self.local_executable_path
+            )
+            self.logger.info(f"step1: {self.platform_name}浏览器实例创建成功")
 
 
-        # step2.创建上下文并加载cookie
-        context = await browser.new_context(storage_state=f"{self.account_file}")
-        context = await set_init_script(context)
-        self.logger.info(f"step2: {self.platform_name}浏览器上下文创建成功")
+            # step2.创建上下文并加载cookie
+            context = await browser.new_context(storage_state=f"{self.account_file}")
+            context = await set_init_script(context)
+            self.logger.info(f"step2: {self.platform_name}浏览器上下文创建成功")
 
 
-        # step3.创建新页面，导航到上传页面，明确指定等待domcontentloaded状态
-        page = await context.new_page()
-        # 根据文件类型选择上传页面
-        if self.file_type == 1:
-            await page.goto(self.creator_image_url, wait_until='domcontentloaded', timeout=self.page_load_timeout)
-        else:
-            await page.goto(self.creator_video_url, wait_until='domcontentloaded', timeout=self.page_load_timeout)
-        self.logger.info(f"step3: {self.platform_name}页面加载完成")
-        
-        # step4.选择基础定位器
-        await self.choose_base_locator(page)
-        self.logger.info(f"step4: {self.platform_name}基础定位器选择完成")
+            # step3.创建新页面，导航到上传页面，明确指定等待domcontentloaded状态
+            page = await context.new_page()
+            #tiktok平台需要先切换到英文
+            if self.platform_name == "tk":
+                await self.change_language(page)
+            # 根据文件类型选择上传页面
+            if self.file_type == 1:
+                await page.goto(self.creator_image_url, wait_until='domcontentloaded', timeout=self.page_load_timeout)
+            else:
+                await page.goto(self.creator_video_url, wait_until='domcontentloaded', timeout=self.page_load_timeout)
+            await asyncio.sleep(2)
+            self.logger.info(f"step3: {self.platform_name}页面加载完成")
+            
+            # step4.选择基础定位器
+            await self.choose_base_locator(page)
+            self.logger.info(f"step4: {self.platform_name}基础定位器选择完成")
 
-        # step5.上传视频文件
-        await self.upload_video_file(page)
-        self.logger.info(f"step5: {self.platform_name}视频文件上传完成")
+            # step5.上传视频文件
+            upload_video_file_result = await self.upload_video_file(page)
+            if not upload_video_file_result:
+                raise Exception(f"{self.platform_name} 视频文件上传失败")
+            self.logger.info(f"step5: {self.platform_name}视频文件上传完成")
 
-        # step6.检测上传状态
-        await self.detect_upload_status(page)
-        self.logger.info(f"step6: {self.platform_name}上传状态检测完成")
-        
-        # step7.添加标题和标签
-        await self.add_title_tags(page)
-        self.logger.info(f"step7: {self.platform_name}标题和标签添加完成")
+            # step6.检测上传状态
+            detect_upload_status_result = await self.detect_upload_status(page)
+            if not detect_upload_status_result:
+                raise Exception(f"{self.platform_name} 上传状态检测失败")
+            self.logger.info(f"step6: {self.platform_name}上传状态检测完成")
+            
+            # step7.添加标题和标签
+            add_title_tags_result = await self.add_title_tags(page)
+            if not add_title_tags_result:
+                raise Exception(f"{self.platform_name} 标题和标签添加失败")
+            self.logger.info(f"step7: {self.platform_name}标题和标签添加完成")
 
-        # step8.上传视频封面
-        if self.thumbnail_supported and self.thumbnail:
-            await self.set_thumbnail(page)
-            self.logger.info(f"step8: {self.platform_name}视频封面上传完成")
-        else:
-            self.logger.info(f"step8: {self.platform_name}跳过设置缩略图")
+            # step8.上传视频封面
+            if self.thumbnail_supported and self.thumbnail:
+                await self.set_thumbnail(page)
+                self.logger.info(f"step8: {self.platform_name}视频封面上传完成")
+            else:
+                self.logger.info(f"step8: {self.platform_name}跳过设置缩略图")
 
-        # step9.添加地点
-        if self.location_supported and self.location:
-            await self.set_location(page)
-            self.logger.info(f"step9: {self.platform_name}地点添加完成")
-        else:
-            self.logger.info(f"step9: {self.platform_name}跳过添加地点")
-        
+            # step9.添加地点
+            if self.location_supported and self.location:
+                await self.set_location(page)
+                self.logger.info(f"step9: {self.platform_name}地点添加完成")
+            else:
+                self.logger.info(f"step9: {self.platform_name}跳过添加地点")
+            
+            # step10.设置定时发布（如果需要）
+            if self.schedule_supported and self.publish_date != 0:
+                await self.set_schedule_time(page, self.publish_date)
+                self.logger.info(f"step10: {self.platform_name}定时发布设置完成")
+            else:
+                self.logger.info(f"step10: {self.platform_name}跳过定时发布")
+            
+            # step11.点击发布
+            await self.click_publish(page)
+            self.logger.info(f"step11：{self.platform_name}视频已点击发布按钮")   
 
-        # step10.设置定时发布（如果需要）
-        if self.schedule_supported and self.publish_date != 0:
-            await self.set_schedule_time(page, self.publish_date)
-            self.logger.info(f"step10: {self.platform_name}定时发布设置完成")
-        else:
-            self.logger.info(f"step10: {self.platform_name}跳过定时发布")
-        
-        # step11.点击发布
-        await self.click_publish(page)
-        self.logger.info(f"step11：{self.platform_name}视频已点击发布按钮")   
+            # step12.重新保存最新cookie
+            await context.storage_state(path=f"{self.account_file}")  
+            self.logger.info(f"step12：{self.platform_name}cookie已更新")
 
-        # step12.重新保存最新cookie
-        await context.storage_state(path=f"{self.account_file}")  
-        self.logger.info(f"step12：{self.platform_name}cookie已更新")
+            await asyncio.sleep(self.check_interval)  # close delay for look the video status
+            
+            # step13.关闭所有页面和浏览器上下文
+            await context.close()
+            await browser.close()
+            self.logger.info(f"step13：{self.platform_name}浏览器窗口已关闭")
 
-        await asyncio.sleep(self.check_interval)  # close delay for look the video status
-        
-        # step13.关闭所有页面和浏览器上下文
-        await context.close()
-        await browser.close()
-        self.logger.info(f"step13：{self.platform_name}浏览器窗口已关闭")
+            return self.publish_status
+        except Exception as e:
+            self.logger.error(f"{self.platform_name}视频上传失败: {str(e)}")
+            return False
 
     async def choose_base_locator(self, page):
         """
@@ -271,7 +289,7 @@ class BaseFileUploader(object):
             if count > 0:
                 # 异步等待元素可交互（避免元素未加载完成）
                 await self.locator_base.locator(selector).wait_for(state="visible", timeout=self.button_visible_timeout)
-                # self.logger.info(f"找到按钮定位器: {selector}, 是否可见: {await self.locator_base.locator(selector).is_visible()}")
+                self.logger.info(f"找到按钮定位器: {selector}, 是否可见: {await self.locator_base.locator(selector).is_visible()}")
                 # 返回找到的按钮定位器
                 return self.locator_base.locator(selector)
 
@@ -283,14 +301,15 @@ class BaseFileUploader(object):
         """
         作用：上传视频文件
         网页中相关按钮：上传视频文件的按钮元素为（）
+        返回：是否上传成功
         """
         try:
             # 使用find_button方法查找上传按钮，支持中文和英文界面
             await asyncio.sleep(self.check_interval)
             upload_button = await self.find_button(self.upload_button_selectors)
             if not upload_button:
-                raise Exception("未找到上传视频按钮")
-            self.logger.info("  [-] 将点击上传视频按钮")
+                raise Exception("未找到上传图文/视频按钮")
+            self.logger.info("  [-] 将点击上传图文/视频按钮")
             await upload_button.wait_for(state='visible', timeout=self.button_visible_timeout)
             
             # 上传按钮，需要点击触发系统文件选择器
@@ -299,54 +318,72 @@ class BaseFileUploader(object):
             file_chooser = await fc_info.value
             await file_chooser.set_files(self.file_path)
             self.logger.info(f"通过系统文件选择器上传文件: {self.file_path}")
+            return True
         except Exception as e:
-            self.logger.error(f"选择视频文件失败: {str(e)}")
-            raise
+            self.logger.error(f"选择图文/视频文件失败: {str(e)}")
+            return False
 
     async def detect_upload_status(self, page):
         """
         作用：检测上传状态
         网页中相关按钮：发布按钮选择器（）
+        返回：是否上传成功
         """
         while True:
             try:
-                # 使用find_button方法查找发布按钮
-                publish_button = await self.find_button(self.publish_button_selectors)
-                
-                # 检查发布按钮是否可点击
-                if publish_button and await publish_button.get_attribute("disabled") is None:
-                    self.logger.info("  [-]video uploaded.")
-                    break
+                #快手平台比较特殊，没传完也可以点击发布按钮，需要等编辑画布按钮出现，才算是上传完毕
+                if self.platform_name == "ks":
+                    number = await page.locator("text=上传中").count()
+                    if number == 0:
+                        self.logger.success("图文/视频上传完毕")
+                        break
+                    else:
+                        self.logger.info("正在上传图文/视频中...")
+                        await asyncio.sleep(self.check_interval)
                 else:
-                    self.logger.info("  [-] video uploading...")
-                    await asyncio.sleep(self.check_interval)
-                    # 检查是否有错误需要重试，使用中文和英文选择器
-                    error_element = await self.find_button(self.error_selectors)
-                    if error_element:
-                        self.logger.info("  [-] found error while uploading now retry...")
-                        await self.handle_upload_error(page)
+                    # 其他平台，使用find_button方法查找发布按钮，发布按钮能点了就代表上传完毕了
+                    publish_button = await self.find_button(self.publish_button_selectors)               
+                    # 检查发布按钮是否可点击
+                    if publish_button and await publish_button.get_attribute("disabled") is None:
+                        self.logger.info("图文/视频上传完毕")
+                        break
+                    else:
+                        self.logger.info("正在上传图文/视频中...")
+                        await asyncio.sleep(self.check_interval)
+                        # 检查是否有错误需要重试，使用中文和英文选择器
+                        error_element = await self.find_button(self.error_selectors)
+                        if error_element:
+                            self.logger.info("  [-] found error while uploading now retry...")
+                            await self.handle_upload_error(page)
             except Exception as e:
                 self.logger.info(f"  [-] video uploading... Error: {str(e)}")
                 await asyncio.sleep(self.check_interval)
+                return False
+        return True
 
     async def handle_upload_error(self, page):
         """
         作用：处理上传错误，重新上传
         网页中相关按钮：系统文件管理器的上传按钮（input[type="file"]）
+        返回：是否重新上传成功
         """
-        self.logger.info("video upload error retrying.")
         try:
+            self.logger.info("video upload error retrying.")
             # 使用find_button方法查找文件上传按钮
             file_input_button = await self.find_button(self.file_input_selector)
             if file_input_button:
                 await file_input_button.set_input_files(self.file_path)
+                self.logger.info(f"重新上传文件: {self.file_path}")
+                return True
         except Exception as e:
             self.logger.error(f"重新上传失败: {str(e)}")
+            return False
     
     async def add_title_tags(self, page):
         """
         作用：添加标题和标签
         网页中相关按钮：添加标题和标签的按钮选择器（）
+        返回：是否添加成功
         """
         try:
             # 输入标题
@@ -393,10 +430,15 @@ class BaseFileUploader(object):
                     await page.keyboard.insert_text(f"#{tag} ")
                     # 等待300毫秒
                     await page.wait_for_timeout(self.wait_timeout_500ms)
+            return True
         except Exception as e:
             self.logger.error(f"Failed to add title, text and tags: {str(e)}")
+            return False
 
     async def set_thumbnail(self, page):
+        """
+        设置视频封面
+        """
         if self.thumbnail_path:
             self.logger.info(f"  [-] 将点击封面选择按钮: {await self.find_button(self.thumbnail_button_selectors).text_content()}")
             await self.find_button(self.thumbnail_button_selectors).click()
@@ -409,6 +451,9 @@ class BaseFileUploader(object):
             await self.find_button(self.thumbnail_close_selectors).click()
 
     async def set_location(self, page):
+        """
+        设置视频发布位置
+        """
         if not self.location:
             return
         await page.locator('div.semi-select span:has-text("输入地理位置")').click()
@@ -451,10 +496,8 @@ class BaseFileUploader(object):
         """
         max_attempts = self.max_publish_attempts  # 最大尝试次数
         attempt = 0
-        publish_success = False
         
         # 上传按钮选择器列表
-        
         while attempt < max_attempts and not self.publish_status:
             attempt += 1
             try:
@@ -462,27 +505,43 @@ class BaseFileUploader(object):
                 publish_button = await self.find_button(self.publish_button_selectors)
                 if publish_button:
                     await publish_button.click()
+                    await asyncio.sleep(self.check_interval)
+                    # tiktok平台发布时要检查并处理版权检查弹窗
+                    if self.platform_name == "tk":
+                        # 等待版权检查弹窗出现
+                        try:
+                            await page.wait_for_selector('button.TUXButton.TUXButton--primary div.TUXButton-label:has-text("Post now")', timeout=5000)
+                            self.logger.info("  [-]检测到版权检查弹窗，准备点击Post now按钮")                       
+                            # 使用更精确的选择器点击Post now按钮
+                            await self.locator_base.locator('button.TUXButton.TUXButton--primary div.TUXButton-label >> text=Post now').click()
+                            self.logger.info("  [-]已点击Post now按钮")                     
+                            # 等待操作完成
+                            await page.wait_for_timeout(2000)
+                        except Exception as e:
+                            self.logger.warning(f"  [-]未检测到版权检查弹窗或点击失败: {str(e)}")
+
 
                 # 步骤2: 等待视频处理完成（通过检查上传按钮重新出现）
                 self.logger.info("等待发布完成...")
                 current_url = page.url
                 self.logger.info(f"当前url: {current_url}")
+                #ks平台、等待发布完成：如果当前url已不在发布页面，说明发布成功
                 if self.file_type == 1:
                     target_url = self.creator_image_url
                 else:
                     target_url = self.creator_video_url
-                # 如果当前url已不在发布页面，说明发布成功
                 if target_url not in current_url:
                     self.publish_status = True
                     break
-
-                # 尝试查找上传按钮，如果上传按钮可见，也能说明发布成功
+                #xx平台等待发布完成：尝试查找上传按钮，如果上传按钮可见，也能说明发布成功
                 upload_button = await self.find_button(self.upload_button_selectors)
-                self.logger.info(f"发布尝试 {attempt}，上传按钮可见状态: {await upload_button.is_visible()}")
                 if upload_button:
+                    self.logger.info(f"发布尝试 {attempt}，上传按钮可见状态: {await upload_button.is_visible()}")
                     await upload_button.wait_for(state='visible', timeout=self.button_visible_timeout)
                     self.publish_status = True
                     break
+                else:
+                    self.logger.info(f"发布尝试 {attempt}，未找到上传按钮")
             except Exception:
                 # 等待后重试
                 self.logger.warning(f"发布尝试 {attempt} 失败，等待重试...")
@@ -604,6 +663,19 @@ class BaseFileUploader(object):
         else:
             raise FileNotFoundError(f"Cookie文件不存在: {account_file}")
 
+    async def change_language(self, page):
+        # set the language to english
+        await page.goto("https://www.tiktok.com", timeout=60000)  # 设置60秒超时
+        await page.wait_for_load_state('domcontentloaded', timeout=60000)
+        await asyncio.sleep(2)
+        await page.wait_for_selector('[data-e2e="nav-more-menu"]', timeout=60000)
+        # 已经设置为英文, 省略这个步骤
+        if await page.locator('[data-e2e="nav-more-menu"]').text_content() == "More":
+            return
+        await page.locator('[data-e2e="nav-more-menu"]').click()
+        await page.locator('[data-e2e="language-select"]').click()
+        await page.locator('#creator-tools-selection-menu-header >> text=English (US)').click()
+
 
 
 
@@ -613,7 +685,11 @@ async def run_upload(platform, account_file, file_type, file_path, title, text, 
     运行单个文件上传到某个平台的任务
     """
     uploader = BaseFileUploader(platform, account_file, file_type, file_path, title, text, tags, thumbnail_path, location, publish_date)
-    return await uploader.main()
+    try:
+        return await uploader.main()
+    except Exception as e:
+        uploader.logger.error(f"上传任务失败: {str(e)}")
+        return False
 
 
 # 特定平台上传器类（用于向后兼容和特殊处理）

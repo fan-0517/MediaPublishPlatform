@@ -7,11 +7,10 @@ import uuid
 from pathlib import Path
 from queue import Queue
 from flask_cors import CORS
+from conf import BASE_DIR
 from myUtils.auth import check_cookie
 from flask import Flask, request, jsonify, Response, send_from_directory
-from conf import BASE_DIR
 from myUtils.login import douyin_cookie_gen, get_tencent_cookie, get_ks_cookie, xiaohongshu_cookie_gen, get_tiktok_cookie, get_instagram_cookie, get_facebook_cookie
-from myUtils.postVideo import post_video_tencent, post_video_DouYin, post_video_ks, post_video_xhs, post_video_TikTok, post_video_Instagram, post_video_Facebook
 from myUtils.multiFileUploader import post_file
 
 active_queues = {}
@@ -602,6 +601,8 @@ def postVideo():
     title: 文件标题
     text: 文件正文描述
     tags: 文件标签，逗号分隔
+    thumbnail: 视频缩略图封面路径
+    location: 视频发布位置，1-国内 2-海外
     category: 文件分类，0-无分类 1-美食 2-日常 3-旅行 4-娱乐 5-教育 6-其他
     enableTimer: 是否启用定时发布，0-否 1-是
     videosPerDay: 每天发布文件数量
@@ -617,12 +618,13 @@ def postVideo():
     file_type = data.get('fileType')  #文件类型，默认值为2：1-图文 2-视频
     file_list = data.get('fileList', []) #文件列表，每个元素为一个字典，包含文件路径和文件名
     title = data.get('title') #文件标题
-    text = data.get('text') #文件正文描述，默认值为demo
+    text = data.get('text', 'demo') #文件正文描述，默认值为demo
     tags = data.get('tags') #文件标签，逗号分隔
     category = data.get('category') #文件分类，0-无分类 1-美食 2-日常 3-旅行 4-娱乐 5-教育 6-其他
     if category == 0:
         category = None
     thumbnail_path = data.get('thumbnail', '') #视频缩略图封面路径
+    location = data.get('location', 1) #视频发布位置，1-国内 2-海外
     productLink = data.get('productLink', '') #商品链接
     productTitle = data.get('productTitle', '') #商品标题
     is_draft = data.get('isDraft', False)  # 是否保存为草稿
@@ -656,7 +658,7 @@ def postVideo():
                 "data": None
             }), 400
 
-    post_file(platform, account_list, file_type, file_list, title, text, tags, enableTimer, videos_per_day, daily_times,start_days)
+    post_file(platform, account_list, file_type, file_list, title, text, tags, thumbnail_path, location, enableTimer, videos_per_day, daily_times,start_days)
     # 返回响应给客户端
     return jsonify(
         {

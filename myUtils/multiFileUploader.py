@@ -55,6 +55,8 @@ def post_file(platform, account_file, file_type, files, title, text,tags,thumbna
                 except Exception as e:
                     print(f"{platform}文件{file.name}发布失败: {str(e)}")
                     # 继续尝试其他账号或文件，不中断整个流程
+                    continue
+        return True
     except Exception as e:
         print(f"{platform}文件发布过程中发生异常: {str(e)}")
         return False
