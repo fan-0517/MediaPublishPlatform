@@ -393,10 +393,17 @@ def delete_account():
                 }), 404
 
             record = dict(record)
+            file_path = record['filePath']
 
             # 删除数据库记录
             cursor.execute("DELETE FROM user_info WHERE id = ?", (account_id,))
             conn.commit()
+
+        # 删除对应的cookies文件
+        cookies_file = Path(BASE_DIR / "cookiesFile" / file_path)
+        if cookies_file.exists():
+            cookies_file.unlink()
+            print(f"✅ 成功删除cookies文件: {cookies_file}")
 
         return jsonify({
             "code": 200,
