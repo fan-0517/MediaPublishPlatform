@@ -2,9 +2,14 @@ import { http } from '@/utils/request'
 
 // 视频发布相关API
 export const publishApi = {
-  // 发布视频
+  // 发布视频到单个平台
   postVideo(data) {
     return http.post('/postVideo', data)
+  },
+  
+  // 批量发布多个文件到多个平台
+  postVideosToMultiplePlatforms(data) {
+    return http.post('/postVideosToMultiplePlatforms', data)
   },
 
   // 取消发布任务

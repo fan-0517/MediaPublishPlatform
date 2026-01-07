@@ -213,16 +213,16 @@
           <!-- 平台选择 -->
           <div class="platform-section">
             <h3>平台</h3>
-            <el-radio-group v-model="tab.selectedPlatform" class="platform-radios">
-              <el-radio 
+            <el-checkbox-group v-model="tab.selectedPlatforms" class="platform-checkboxes">
+              <el-checkbox 
                 v-for="platform in platforms" 
                 :key="platform.key"
                 :label="platform.key"
-                class="platform-radio"
+                class="platform-checkbox"
               >
                 {{ platform.name }}
-              </el-radio>
-            </el-radio-group>
+              </el-checkbox>
+            </el-checkbox-group>
           </div>
 
           <!-- 账号选择 -->
@@ -291,35 +291,17 @@
             </template>
           </el-dialog>
 
-          <!-- 草稿选项 (仅在视频号可见) -->
-          <div v-if="tab.selectedPlatform === 2" class="draft-section">
-            <el-checkbox
-              v-model="tab.isDraft"
-              label="视频号仅保存草稿(用手机发布)"
-              class="draft-checkbox"
-            />
-          </div>
-
-          <!-- 标签 (仅在抖音可见) -->
-          <div v-if="tab.selectedPlatform === 3" class="product-section">
-            <h3>商品链接</h3>
-            <el-input
-              v-model="tab.productTitle"
-              type="text"
-              :rows="1"
-              placeholder="请输入商品名称"
-              maxlength="200"
-              class="product-name-input"
-            />
-            <el-input
-              v-model="tab.productLink"
-              type="text"
-              :rows="1"
-              placeholder="请输入商品链接"
-              maxlength="200"
-              class="product-link-input"
-            />
-          </div>
+          <!-- 单平台特有功能 -->
+          <template v-if="tab.selectedPlatforms.length <= 1">
+            <!-- 草稿选项 (仅在视频号可见) -->
+            <div v-if="tab.selectedPlatforms.includes(2)" class="draft-section">
+              <el-checkbox
+                v-model="tab.isDraft"
+                label="视频号仅保存草稿(用手机发布)"
+                class="draft-checkbox"
+              />
+            </div>
+          </template>
 
           <!-- 标题输入 -->
           <div class="title-section">
@@ -336,7 +318,7 @@
           </div>
           
           <!-- 正文输入 -->
-          <div v-if="tab.selectedPlatform === 1" class="content-section">
+          <div v-if="tab.selectedPlatforms.includes(1) || tab.selectedPlatforms.length <= 1" class="content-section">
             <h3>正文</h3>
             <el-input
               v-model="tab.content"
@@ -374,7 +356,7 @@
               </el-button>
             </div>
           </div>
-
+          
           <!-- 添加话题弹窗 -->
           <el-dialog
             v-model="topicDialogVisible"
@@ -420,78 +402,81 @@
             </template>
           </el-dialog>
 
-          <!-- 标签 (仅在抖音可见) -->
-          <div v-if="tab.selectedPlatform === 3" class="product-section">
-            <h3>商品链接</h3>
-            <el-input
-              v-model="tab.productTitle"
-              type="text"
-              :rows="1"
-              placeholder="请输入商品名称"
-              maxlength="200"
-              class="product-name-input"
-            />
-            <el-input
-              v-model="tab.productLink"
-              type="text"
-              :rows="1"
-              placeholder="请输入商品链接"
-              maxlength="200"
-              class="product-link-input"
-            />
-          </div>
-
-          <!-- 定时发布 -->
-          <div class="schedule-section">
-            <h3>定时发布</h3>
-            <div class="schedule-controls">
-              <el-switch
-                v-model="tab.scheduleEnabled"
-                active-text="定时发布"
-                inactive-text="立即发布"
+          <!-- 单平台特有功能 - 继续 -->
+          <template v-if="tab.selectedPlatforms.length <= 1">
+            <!-- 标签 (仅在抖音可见) -->
+            <div v-if="tab.selectedPlatforms.includes(3)" class="product-section">
+              <h3>商品链接</h3>
+              <el-input
+                v-model="tab.productTitle"
+                type="text"
+                :rows="1"
+                placeholder="请输入商品名称"
+                maxlength="200"
+                class="product-name-input"
               />
-              <div v-if="tab.scheduleEnabled" class="schedule-settings">
-                <div class="schedule-item">
-                  <span class="label">每天发布视频数：</span>
-                  <el-select v-model="tab.videosPerDay" placeholder="选择发布数量">
-                    <el-option
-                      v-for="num in 55"
-                      :key="num"
-                      :label="num"
-                      :value="num"
+              <el-input
+                v-model="tab.productLink"
+                type="text"
+                :rows="1"
+                placeholder="请输入商品链接"
+                maxlength="200"
+                class="product-link-input"
+              />
+            </div>
+
+            <!-- 定时发布 -->
+            <div class="schedule-section">
+              <h3>定时发布</h3>
+              <div class="schedule-controls">
+                <el-switch
+                  v-model="tab.scheduleEnabled"
+                  active-text="定时发布"
+                  inactive-text="立即发布"
+                />
+                <div v-if="tab.scheduleEnabled" class="schedule-settings">
+                  <div class="schedule-item">
+                    <span class="label">每天发布视频数：</span>
+                    <el-select v-model="tab.videosPerDay" placeholder="选择发布数量">
+                      <el-option
+                        v-for="num in 55"
+                        :key="num"
+                        :label="num"
+                        :value="num"
+                      />
+                    </el-select>
+                  </div>
+                  <div class="schedule-item">
+                    <span class="label">每天发布时间：</span>
+                    <el-time-select
+                      v-for="(time, index) in tab.dailyTimes"
+                      :key="index"
+                      v-model="tab.dailyTimes[index]"
+                      start="00:00"
+                      step="00:30"
+                      end="23:30"
+                      placeholder="选择时间"
                     />
-                  </el-select>
-                </div>
-                <div class="schedule-item">
-                  <span class="label">每天发布时间：</span>
-                  <el-time-select
-                    v-for="(time, index) in tab.dailyTimes"
-                    :key="index"
-                    v-model="tab.dailyTimes[index]"
-                    start="00:00"
-                    step="00:30"
-                    end="23:30"
-                    placeholder="选择时间"
-                  />
-                  <el-button
-                    v-if="tab.dailyTimes.length < tab.videosPerDay"
-                    type="primary"
-                    size="small"
-                    @click="tab.dailyTimes.push('10:00')"
-                  >
-                    添加时间
-                  </el-button>
-                </div>
-                <div class="schedule-item">
-                  <span class="label">开始天数：</span>
-                  <el-select v-model="tab.startDays" placeholder="选择开始天数">
-                    <el-option :label="'明天'" :value="0" />
-                    <el-option :label="'后天'" :value="1" />
-                  </el-select>
+                    <el-button
+                      v-if="tab.dailyTimes.length < tab.videosPerDay"
+                      type="primary"
+                      size="small"
+                      @click="tab.dailyTimes.push('10:00')"
+                    >
+                      添加时间
+                    </el-button>
+                  </div>
+                  <div class="schedule-item">
+                    <span class="label">开始天数：</span>
+                    <el-select v-model="tab.startDays" placeholder="选择开始天数">
+                      <el-option :label="'明天'" :value="0" />
+                      <el-option :label="'后天'" :value="1" />
+                    </el-select>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </template>
 
           <!-- 操作按钮 -->
           <div class="action-buttons">
@@ -567,7 +552,7 @@ const defaultTabInit = {
   fileList: [], // 后端返回的文件名列表
   displayFileList: [], // 用于显示的文件列表
   selectedAccounts: [], // 选中的账号ID列表
-  selectedPlatform: 1, // 选中的平台（单选）
+  selectedPlatforms: [], // 选中的平台列表（多选）
   title: '',
   content: '', // 正文内容
   productLink: '', // 商品链接
@@ -604,13 +589,13 @@ const currentTab = ref(null)
 const selectAllAccounts = ref(false)
 
 // 监听平台选择变化，当平台改变时清空已选择的账号
-watch(() => currentTab.value?.selectedPlatform, (newPlatform, oldPlatform) => {
-  if (currentTab.value && newPlatform !== oldPlatform && oldPlatform !== undefined) {
+watch(() => currentTab.value?.selectedPlatforms, (newPlatforms, oldPlatforms) => {
+  if (currentTab.value && JSON.stringify(newPlatforms) !== JSON.stringify(oldPlatforms) && oldPlatforms !== undefined) {
     // 平台发生变化，清空已选择的账号
     currentTab.value.selectedAccounts = []
     ElMessage.info('平台已切换，请重新选择账号')
   }
-})
+}, { deep: true })
 
 // 获取账号状态管理
 const accountStore = useAccountStore()
@@ -646,8 +631,18 @@ const availableAccounts = computed(() => {
     6: 'Instagram',
     7: 'Facebook'
   }
-  const currentPlatform = currentTab.value ? platformMap[currentTab.value.selectedPlatform] : null
-  return currentPlatform ? accountStore.accounts.filter(acc => acc.platform === currentPlatform) : []
+  
+  // 获取当前选中的所有平台对应的平台名称
+  const selectedPlatforms = currentTab.value?.selectedPlatforms || []
+  const platformNames = selectedPlatforms.map(platformKey => platformMap[platformKey]).filter(Boolean)
+  
+  // 如果没有选中平台，返回所有账号
+  if (platformNames.length === 0) {
+    return []
+  }
+  
+  // 返回所有选中平台的可用账号
+  return accountStore.accounts.filter(acc => platformNames.includes(acc.platform))
 })
 
 // 话题相关状态
@@ -830,6 +825,17 @@ const cancelPublish = (tab) => {
   ElMessage.info('已取消发布')
 }
 
+// 平台类型到平台名称的映射
+const platformTypeMap = {
+  1: 'xiaohongshu',
+  2: 'tencent',
+  3: 'douyin',
+  4: 'kuaishou',
+  5: 'tiktok',
+  6: 'instagram',
+  7: 'facebook'
+}
+
 // 确认发布
 const confirmPublish = async (tab) => {
   // 防止重复点击
@@ -853,10 +859,10 @@ const confirmPublish = async (tab) => {
       reject(new Error('请输入标题'))
       return
     }
-    if (!tab.selectedPlatform) {
-      ElMessage.error('请选择发布平台')
+    if (!tab.selectedPlatforms || tab.selectedPlatforms.length === 0) {
+      ElMessage.error('请选择至少一个发布平台')
       tab.publishing = false // 重置发布状态
-      reject(new Error('请选择发布平台'))
+      reject(new Error('请选择至少一个发布平台'))
       return
     }
     if (tab.selectedAccounts.length === 0) {
@@ -866,63 +872,136 @@ const confirmPublish = async (tab) => {
       return
     }
 
-    // 构造发布数据，符合后端API格式
-    const publishData = {
-      type: tab.selectedPlatform,
-      title: tab.title,
-      text: tab.content.trim() || '', // 正文内容，后端API使用text字段
-      tags: tab.selectedTopics, // 不带#号的话题列表
-      fileList: tab.fileList.map(file => file.path), // 只发送文件路径
-      accountList: tab.selectedAccounts.map(accountId => {
-        const account = accountStore.accounts.find(acc => acc.id === accountId)
-        return account ? account.filePath : accountId
-      }), // 发送账号的文件路径
-      enableTimer: tab.scheduleEnabled ? 1 : 0, // 是否启用定时发布，开启传1，不开启传0
-      videosPerDay: tab.scheduleEnabled ? tab.videosPerDay || 1 : 1, // 每天发布视频数量，1-55
-      dailyTimes: tab.scheduleEnabled ? tab.dailyTimes || ['10:00'] : ['10:00'], // 每天发布时间点
-      startDays: tab.scheduleEnabled ? tab.startDays || 0 : 0, // 从今天开始计算的发布天数，0表示明天，1表示后天
-      category: 0, //表示非原创
-      productLink: tab.productLink.trim() || '', // 商品链接
-      productTitle: tab.productTitle.trim() || '', // 商品名称
-      isDraft: tab.isDraft // 是否保存为草稿，仅视频号平台使用
-    }
+    // 如果只选择了一个平台，使用原有的单平台发布API
+    if (tab.selectedPlatforms.length === 1) {
+      const platformType = tab.selectedPlatforms[0]
+      // 构造发布数据，符合后端API格式
+      const publishData = {
+        type: platformType,
+        title: tab.title,
+        text: tab.content.trim() || '', // 正文内容，后端API使用text字段
+        tags: tab.selectedTopics, // 不带#号的话题列表
+        fileList: tab.fileList.map(file => file.path), // 只发送文件路径
+        accountList: tab.selectedAccounts.map(accountId => {
+          const account = accountStore.accounts.find(acc => acc.id === accountId)
+          return account ? account.filePath : accountId
+        }), // 发送账号的文件路径
+        enableTimer: tab.scheduleEnabled ? 1 : 0, // 是否启用定时发布，开启传1，不开启传0
+        videosPerDay: tab.scheduleEnabled ? tab.videosPerDay || 1 : 1, // 每天发布视频数量，1-55
+        dailyTimes: tab.scheduleEnabled ? tab.dailyTimes || ['10:00'] : ['10:00'], // 每天发布时间点
+        startDays: tab.scheduleEnabled ? tab.startDays || 0 : 0, // 从今天开始计算的发布天数，0表示明天，1表示后天
+        category: 0, //表示非原创
+        productLink: tab.productLink.trim() || '', // 商品链接
+        productTitle: tab.productTitle.trim() || '', // 商品名称
+        isDraft: tab.isDraft // 是否保存为草稿，仅视频号平台使用
+      }
 
-    // 调用后端发布API
-    publishApi.postVideo(publishData)
-      .then(data => {
-      if (data.code === 200) {
-        tab.publishStatus = {
-          message: '发布成功',
-          type: 'success'
+      // 调用后端发布API
+      publishApi.postVideo(publishData)
+        .then(data => {
+        if (data.code === 200) {
+          tab.publishStatus = {
+            message: '发布成功',
+            type: 'success'
+          }
+          // 清空当前tab的数据
+          tab.fileList = []
+          tab.displayFileList = []
+          tab.title = ''
+          tab.content = ''
+          tab.selectedTopics = []
+          tab.selectedAccounts = []
+          tab.selectedPlatforms = []
+          tab.scheduleEnabled = false
+          resolve()
+        } else {
+          tab.publishStatus = {
+            message: `发布失败：${data.msg || '发布失败'}`,
+            type: 'error'
+          }
+          reject(new Error(data.msg || '发布失败'))
         }
-        // 清空当前tab的数据
-        tab.fileList = []
-        tab.displayFileList = []
-        tab.title = ''
-        tab.content = ''
-        tab.selectedTopics = []
-        tab.selectedAccounts = []
-        tab.scheduleEnabled = false
-        resolve()
-      } else {
+      })
+      .catch(error => {
+        console.error('发布错误:', error)
         tab.publishStatus = {
-          message: `发布失败：${data.msg || '发布失败'}`,
+          message: '发布失败，请检查网络连接',
           type: 'error'
         }
-        reject(new Error(data.msg || '发布失败'))
+        reject(error)
+      })
+      .finally(() => {
+        tab.publishing = false // 重置发布状态
+      })
+    } else {
+      // 多个平台发布，使用新的批量发布API
+      const platformNames = tab.selectedPlatforms.map(type => platformTypeMap[type])
+      
+      // 构建账号文件字典：key为平台名称，value为该平台对应的账号文件列表
+      const accountFiles = {}
+      platformNames.forEach(platformName => {
+        accountFiles[platformName] = tab.selectedAccounts.map(accountId => {
+          const account = accountStore.accounts.find(acc => acc.id === accountId)
+          return account ? account.filePath : accountId
+        })
+      })
+      
+      // 构造发布数据，符合后端批量发布API格式，只包含公共参数
+      const publishData = {
+        platforms: platformNames,
+        accountFiles: accountFiles,
+        fileType: 2, // 默认视频类型
+        files: tab.fileList.map(file => file.path), // 只发送文件路径
+        title: tab.title,
+        text: tab.content.trim() || '', // 正文内容，后端API使用text字段
+        tags: tab.selectedTopics.join(','), // 标签用逗号隔开
+        thumbnail: '', // 缩略图路径
+        location: 1, // 默认国内
+        // 多平台发布不支持定时发布和其他单平台特有参数
+        enableTimer: 0,
+        videosPerDay: 1,
+        dailyTimes: ['10:00'],
+        startDays: 0
       }
-    })
-    .catch(error => {
-      console.error('发布错误:', error)
-      tab.publishStatus = {
-        message: '发布失败，请检查网络连接',
-        type: 'error'
-      }
-      reject(error)
-    })
-    .finally(() => {
-      tab.publishing = false // 重置发布状态
-    })
+
+      // 调用后端批量发布API
+      publishApi.postVideosToMultiplePlatforms(publishData)
+        .then(data => {
+        if (data.code === 200) {
+          tab.publishStatus = {
+            message: '发布成功',
+            type: 'success'
+          }
+          // 清空当前tab的数据
+          tab.fileList = []
+          tab.displayFileList = []
+          tab.title = ''
+          tab.content = ''
+          tab.selectedTopics = []
+          tab.selectedAccounts = []
+          tab.selectedPlatforms = []
+          tab.scheduleEnabled = false
+          resolve()
+        } else {
+          tab.publishStatus = {
+            message: `发布失败：${data.msg || '发布失败'}`,
+            type: 'error'
+          }
+          reject(new Error(data.msg || '发布失败'))
+        }
+      })
+      .catch(error => {
+        console.error('发布错误:', error)
+        tab.publishStatus = {
+          message: '发布失败，请检查网络连接',
+          type: 'error'
+        }
+        reject(error)
+      })
+      .finally(() => {
+        tab.publishing = false // 重置发布状态
+      })
+    }
   })
 }
 
