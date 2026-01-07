@@ -628,48 +628,68 @@ def postVideo():
     startDays: 开始发布时间，距离当前时间的天数，负数表示之前的时间
 
     """
-    # 获取JSON数据的POST请求体
-    data = request.get_json()
-    type = data.get('type') #发布平台类型，1-小红书 2-视频号 3-抖音 4-快手 5-tiktok 6-instagram 7-facebook
-    platform = data.get('platform') #发布平台类型，1-小红书 2-视频号 3-抖音 4-快手 5-tiktok 6-instagram 7-facebook
-    account_list = data.get('accountList', []) #账号列表，每个元素为一个字典，包含账号信息
-    file_type = data.get('fileType')  #文件类型，默认值为2：1-图文 2-视频
-    file_list = data.get('fileList', []) #文件列表，每个元素为一个字典，包含文件路径和文件名
-    title = data.get('title') #文件标题
-    text = data.get('text', 'demo') #文件正文描述，默认值为demo
-    tags = data.get('tags') #文件标签，逗号分隔
-    category = data.get('category') #文件分类，0-无分类 1-美食 2-日常 3-旅行 4-娱乐 5-教育 6-其他
-    if category == 0:
-        category = None
-    thumbnail_path = data.get('thumbnail', '') #视频缩略图封面路径
-    location = data.get('location', 1) #视频发布位置，1-国内 2-海外
-    productLink = data.get('productLink', '') #商品链接
-    productTitle = data.get('productTitle', '') #商品标题
-    is_draft = data.get('isDraft', False)  # 是否保存为草稿
-    enableTimer = data.get('enableTimer') #是否启用定时发布，0-否 1-是
-    videos_per_day = data.get('videosPerDay') #每天发布文件数量
-    daily_times = data.get('dailyTimes') #每天发布时间，逗号分隔，格式为HH:MM
-    start_days = data.get('startDays') #开始发布时间，距离当前时间的天数，负数表示之前的时间
-    # 打印获取到的数据（仅作为示例）
-    print("File List:", file_list)
-    print("Account List:", account_list)
-    #根据type获取platform
-    platform = get_platform_key_by_type(type)
-    if not platform:
-        return jsonify({
-            "code": 400,
-            "msg": "Invalid type",
-            "data": None
-        }), 400
+    try:
+        # 获取JSON数据的POST请求体
+        data = request.get_json()
+        type = data.get('type') #发布平台类型，1-小红书 2-视频号 3-抖音 4-快手 5-tiktok 6-instagram 7-facebook
+        platform = data.get('platform') #发布平台类型，1-小红书 2-视频号 3-抖音 4-快手 5-tiktok 6-instagram 7-facebook
+        account_list = data.get('accountList', []) #账号列表，每个元素为一个字典，包含账号信息
+        file_type = data.get('fileType')  #文件类型，默认值为2：1-图文 2-视频
+        file_list = data.get('fileList', []) #文件列表，每个元素为一个字典，包含文件路径和文件名
+        title = data.get('title') #文件标题
+        text = data.get('text', 'demo') #文件正文描述，默认值为demo
+        tags = data.get('tags') #文件标签，逗号分隔
+        category = data.get('category') #文件分类，0-无分类 1-美食 2-日常 3-旅行 4-娱乐 5-教育 6-其他
+        if category == 0:
+            category = None
+        thumbnail_path = data.get('thumbnail', '') #视频缩略图封面路径
+        location = data.get('location', 1) #视频发布位置，1-国内 2-海外
+        productLink = data.get('productLink', '') #商品链接
+        productTitle = data.get('productTitle', '') #商品标题
+        is_draft = data.get('isDraft', False)  # 是否保存为草稿
+        enableTimer = data.get('enableTimer') #是否启用定时发布，0-否 1-是
+        videos_per_day = data.get('videosPerDay') #每天发布文件数量
+        daily_times = data.get('dailyTimes') #每天发布时间，逗号分隔，格式为HH:MM
+        start_days = data.get('startDays') #开始发布时间，距离当前时间的天数，负数表示之前的时间
+        # 打印获取到的数据（仅作为示例）
+        print("File List:", file_list)
+        print("Account List:", account_list)
+        #根据type获取platform
+        platform = get_platform_key_by_type(type)
+        if not platform:
+            return jsonify({
+                "code": 400,
+                "msg": "Invalid type",
+                "data": None
+            }), 400
 
-    post_file(platform, account_list, file_type, file_list, title, text, tags, thumbnail_path, location, enableTimer, videos_per_day, daily_times,start_days)
-    # 返回响应给客户端
-    return jsonify(
-        {
-            "code": 200,
-            "msg": None,
-            "data": None
-        }), 200
+        # 调用post_file函数并获取返回值
+        result = post_file(platform, account_list, file_type, file_list, title, text, tags, thumbnail_path, location, enableTimer, videos_per_day, daily_times,start_days)
+        
+        # 根据返回值返回不同的响应
+        if result:
+            return jsonify(
+                {
+                    "code": 200,
+                    "msg": "发布成功",
+                    "data": None
+                }), 200
+        else:
+            return jsonify(
+                {
+                    "code": 500,
+                    "msg": "发布失败",
+                    "data": None
+                }), 500
+    except Exception as e:
+        # 捕获所有异常，返回统一的失败响应
+        print(f"发布视频时发生异常: {str(e)}")
+        return jsonify(
+            {
+                "code": 500,
+                "msg": f"发布失败: {str(e)}",
+                "data": None
+            }), 500
 
 
 @app.route('/updateUserinfo', methods=['POST'])

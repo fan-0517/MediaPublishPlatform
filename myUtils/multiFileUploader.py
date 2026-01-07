@@ -34,29 +34,41 @@ def post_file(platform, account_file, file_type, files, title, text,tags,thumbna
         else:
             publish_datetimes = 0
 
+        success_count = 0
         for index, file in enumerate(files):
+            file_published = False
             for cookie in account_file:
                 try:
                     # 使用独立的run_upload函数来执行上传
                     publish_result = asyncio.run(run_upload(platform, cookie, file_type, file, title, text, tags, thumbnail_path, location, publish_datetimes))
-                    
+                     
                     # 是否成功发布
                     if publish_result:
                         print(f"{platform}文件{file.name}发布成功")
+                        success_count += 1
+                        file_published = True
+                        # 这个账号发布成功后跳过
+                        continue
                     else:
-                        print(f"{platform}文件{file.name}发布失败")
-                    
-                    # 任务进度
-                    print(f"{platform}已发布{index+1}/{file_num}个文件")
-                    
-                    # 全部发布完毕后
-                    if index+1 == file_num:
-                        print(f"{platform}所有文件发布完成")
+                        print(f"{platform}文件{file.name}发布失败，尝试下一个账号")
                 except Exception as e:
                     print(f"{platform}文件{file.name}发布失败: {str(e)}")
-                    # 继续尝试其他账号或文件，不中断整个流程
+                    # 继续尝试其他账号，不中断当前文件的发布
                     continue
-        return True
+            
+            # 任务进度 - 显示成功数量/总数量
+            print(f"{platform}已发布{success_count}/{file_num}个文件")
+        
+        # 全部发布完毕后，显示最终结果
+        if success_count == file_num:
+            print(f"{platform}所有文件发布完成")
+        else:
+            print(f"{platform}发布完成，成功发布{success_count}/{file_num}个文件")
+        # 如果有文件发布成功，返回True
+        if file_published:
+            return True
+        else:
+            return False
     except Exception as e:
         print(f"{platform}文件发布过程中发生异常: {str(e)}")
         return False
@@ -124,8 +136,8 @@ def post_single_file_to_multiple_platforms(platforms, account_files, file_type, 
                     # 继续尝试其他账号，不中断当前平台的发布
                     continue
             
-            # 任务进度
-            print(f"已发布到{index+1}/{platform_num}个平台")
+            # 任务进度 - 显示成功数量/总数量
+            print(f"已发布到{success_count}/{platform_num}个平台")
         
         # 全部发布完毕后
         if success_count == platform_num:
