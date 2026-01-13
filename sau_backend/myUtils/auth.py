@@ -213,10 +213,10 @@ async def cookie_auth_bilibili(account_file):
         # 创建一个新的页面
         page = await context.new_page()
         # 访问Bilibili创作中心
-        await page.goto("https://member.bilibili.com/v2#/upload/manual")
+        await page.goto("https://member.bilibili.com/platform/home")
         try:
             # 等待页面加载完成
-            await page.wait_for_url("https://member.bilibili.com/v2#/upload/manual", timeout=30000)
+            await page.wait_for_url("https://member.bilibili.com/platform/home", timeout=30000)
             # 检查是否需要登录
             try:
                 await page.get_by_text("登录", timeout=15000)
@@ -248,10 +248,10 @@ async def cookie_auth_baijiahao(account_file):
         # 创建一个新的页面
         page = await context.new_page()
         # 访问Baijiahao创作中心
-        await page.goto("https://baijiahao.baidu.com/builder/rc/list")
+        await page.goto("https://baijiahao.baidu.com/builder/rc/home")
         try:
             # 等待页面加载完成
-            await page.wait_for_url("https://baijiahao.baidu.com/builder/rc/list", timeout=30000)
+            await page.wait_for_url("https://baijiahao.baidu.com/builder/rc/home", timeout=30000)
             # 检查是否需要登录
             try:
                 await page.get_by_text("登录", timeout=15000)

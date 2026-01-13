@@ -245,16 +245,17 @@ async def getValidAccounts():
             async def check_and_update_cookie(row):
                 try:
                     flag = await check_cookie(row[1], row[2])
-                    if not flag:
-                        row[4] = 0
-                        # 注意：这里不执行数据库更新，而是返回需要更新的行ID
-                        return row[0]
-                    return None
+                    if flag:
+                        row[4] = 1  # 验证成功，状态设为1
+                        return row[0], 1
+                    else:
+                        row[4] = 0  # 验证失败，状态设为0
+                        return row[0], 0
                 except Exception as e:
                     print(f"❌ 验证账号 {row[3]} (ID: {row[0]}) 时出错: {str(e)}")
                     # 验证失败，标记为失效
                     row[4] = 0
-                    return row[0]
+                    return row[0], 0
             
             # 分批处理以控制并发数量
             def chunked_list(lst, chunk_size):
@@ -263,8 +264,8 @@ async def getValidAccounts():
             
             print(f"\n🔄 开始并发验证账号状态（并发数: {CONCURRENCY_LIMIT}）...")
             
-            # 记录需要更新的账号ID
-            ids_to_update = []
+            # 记录需要更新的账号ID和状态
+            accounts_to_update = []
             
             # 分批处理所有账号
             for batch in chunked_list(rows_list, CONCURRENCY_LIMIT):
@@ -272,26 +273,47 @@ async def getValidAccounts():
                 tasks = [check_and_update_cookie(row) for row in batch]
                 # 并发执行当前批次的所有任务，return_exceptions=True确保即使某个任务失败，其他任务仍能继续执行
                 results = await asyncio.gather(*tasks, return_exceptions=True)
-                # 收集需要更新的账号ID，过滤掉异常结果
+                # 收集需要更新的账号ID和状态，过滤掉异常结果
                 for result in results:
                     if isinstance(result, Exception):
                         print(f"⚠️  批次处理中遇到异常: {str(result)}")
                     elif result is not None:
-                        ids_to_update.append(result)
+                        accounts_to_update.append(result)
             
             # 批量更新数据库，减少数据库操作次数
-            if ids_to_update:
-                # 使用批量更新语句
-                placeholders = ','.join(['?' for _ in ids_to_update])
-                cursor.execute(f'''
-                UPDATE user_info 
-                SET status = 0 
-                WHERE id IN ({placeholders})
-                ''', ids_to_update)
+            if accounts_to_update:
+                # 分离正常和失效账号，分别处理
+                valid_accounts = [acc[0] for acc in accounts_to_update if acc[1] == 1]
+                invalid_accounts = [acc[0] for acc in accounts_to_update if acc[1] == 0]
+                
+                update_queries = []
+                update_params = []
+                
+                # 更新正常账号状态
+                if valid_accounts:
+                    placeholders_valid = ','.join(['?' for _ in valid_accounts])
+                    update_queries.append(f"UPDATE user_info SET status = 1 WHERE id IN ({placeholders_valid})")
+                    update_params.extend(valid_accounts)
+                
+                # 更新失效账号状态
+                if invalid_accounts:
+                    placeholders_invalid = ','.join(['?' for _ in invalid_accounts])
+                    update_queries.append(f"UPDATE user_info SET status = 0 WHERE id IN ({placeholders_invalid})")
+                    update_params.extend(invalid_accounts)
+                
+                # 执行所有更新语句
+                for query in update_queries:
+                    if 'status = 1' in query:
+                        cursor.execute(query, valid_accounts)
+                    else:
+                        cursor.execute(query, invalid_accounts)
+                
                 conn.commit()
-                print(f"✅ 已批量更新 {len(ids_to_update)} 个失效账号的状态")
+                
+                total_updated = len(valid_accounts) + len(invalid_accounts)
+                print(f"✅ 已批量更新 {total_updated} 个账号的状态，其中 {len(valid_accounts)} 个正常，{len(invalid_accounts)} 个失效")
             else:
-                print("✅ 所有账号状态均有效，无需更新")
+                print("✅ 所有账号状态均无需更新")
             for row in rows:
                 print(row)
             return jsonify(
