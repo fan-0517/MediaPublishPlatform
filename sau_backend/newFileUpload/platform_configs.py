@@ -313,10 +313,10 @@ PLATFORM_CONFIGS = {
         "platform_name": "bilibili",
         "personal_url": "https://member.bilibili.com/platform/home",
         "login_url": "https://passport.bilibili.com/login",
-        "creator_video_url": "https://member.bilibili.com/platform/upload/video/frame",
+        "creator_video_url": "https://member.bilibili.com/platform/upload/video/frame?page_from=creative_home_top_upload",
         "creator_image_url": "https://member.bilibili.com/platform/upload/video/frame",
         "selectors": {
-            "upload_button": ['.upload-btn', '.upload-area'],
+            "upload_button": ['#video-up-app > div.video-entrance > div.upload-body > div > div.upload-wrp > div > div > div','#video-up-app > div.video-complete > div.content-wrapper > div > div.op-buttons > button > span'],
             "publish_button": ['span.submit-add:has-text("立即投稿")'],
             #标题编辑器选择器
             "title_editor": ['input.input-val[type="text"][placeholder="请输入稿件标题"]'],
@@ -355,16 +355,16 @@ PLATFORM_CONFIGS = {
         "platform_name": "baijiahao",
         "personal_url": "https://baijiahao.baidu.com/builder/rc/home",
         "login_url": "https://baijiahao.baidu.com/builder/theme/bjh/login",
-        "creator_video_url": "https://baijiahao.baidu.com/builder/rc/edit?type=videoV2",
-        "creator_image_url": "https://baijiahao.baidu.com/builder/rc/edit?type=news",
+        "creator_video_url": "https://baijiahao.baidu.com/builder/rc/edit?type=videoV2&is_from_cms=1",
+        "creator_image_url": "https://baijiahao.baidu.com/builder/rc/edit?type=news&is_from_cms=1",
         "selectors": {
-            "upload_button": ['input[type="file"]'],
-            "publish_button": ['button:has-text("发布")'],
+            "upload_button": ['#root > div > div.mp-container.mp-container-edit > div > div.scale-box > div > div > div > section > div > div.video-main-container > div.e844194154160364-blankWrap > div > div._5eb0d99a7a8a2180-inputWrap > div'],
+            "publish_button": ['#new-operator-content > div > span > span.op-list-right > div:nth-child(3) > button > span'],
             #标题编辑器选择器
-            "title_editor": ['#user_message'],
+            "title_editor": ['#formMain > form > div.left-area-content-box > div:nth-child(2) > div.form-inner-wrap.tags-container.videov2-title-wrap > div > div.cheetah-public.cheetah-textArea.acss-zwcv9m.autoSize > textarea'],
             #正文编辑器输入框选择器
             "textbox_selectors": [
-                'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
+                '#formMain > form > div.left-area-content-box > div.more-information-content > div:nth-child(2) > div.form-inner-wrap > div'
             ],
             "thumbnail_button": ["//span[contains(text(), '添加封面')]"],
             "schedule_button": ['button:has-text("定时发布")'],
