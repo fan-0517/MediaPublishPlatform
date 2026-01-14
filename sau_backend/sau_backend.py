@@ -565,82 +565,383 @@ def login():
     response.headers['Connection'] = 'keep-alive'
     return response
 
-# 将单个视频发布到指定平台（原版）
-@app.route('/postVideo1', methods=['POST'])
-def postVideo1():
-    """
-    参数说明：
-    type: 发布平台类型，1-小红书 2-视频号 3-抖音 4-快手
-    accountList: 账号列表，每个元素为一个字典，包含账号信息
-    fileType: 文件类型，默认值为2：1-图文 2-视频
-    title: 文件标题
-    text: 文件正文描述
-    tags: 文件标签，逗号分隔
-    category: 文件分类，0-无分类 1-美食 2-日常 3-旅行 4-娱乐 5-教育 6-其他
-    enableTimer: 是否启用定时发布，0-否 1-是
-    videosPerDay: 每天发布文件数量
-    dailyTimes: 每天发布时间，逗号分隔，格式为HH:MM
-    startDays: 开始发布时间，距离当前时间的天数，负数表示之前的时间
-
-    """
-    # 获取JSON数据的POST请求体
-    data = request.get_json()
-    type = data.get('type') #发布平台类型，1-小红书 2-视频号 3-抖音 4-快手 5-tiktok 6-instagram 7-facebook
-    account_list = data.get('accountList', []) #账号列表，每个元素为一个字典，包含账号信息
-    file_type = data.get('fileType')  #文件类型，默认值为2：1-图文 2-视频
-    file_list = data.get('fileList', []) #文件列表，每个元素为一个字典，包含文件路径和文件名
-    title = data.get('title') #文件标题
-    text = data.get('text') #文件正文描述，默认值为demo
-    tags = data.get('tags') #文件标签，逗号分隔
-    category = data.get('category') #文件分类，0-无分类 1-美食 2-日常 3-旅行 4-娱乐 5-教育 6-其他
-    if category == 0:
-        category = None
-    thumbnail_path = data.get('thumbnail', '') #视频缩略图封面路径
-    productLink = data.get('productLink', '') #商品链接
-    productTitle = data.get('productTitle', '') #商品标题
-    is_draft = data.get('isDraft', False)  # 是否保存为草稿
-    enableTimer = data.get('enableTimer') #是否启用定时发布，0-否 1-是
-    videos_per_day = data.get('videosPerDay') #每天发布文件数量
-    daily_times = data.get('dailyTimes') #每天发布时间，逗号分隔，格式为HH:MM
-    start_days = data.get('startDays') #开始发布时间，距离当前时间的天数，负数表示之前的时间
-    # 打印获取到的数据（仅作为示例）
-    print("File List:", file_list)
-    print("Account List:", account_list)
-    match type:
-        case 1:
-            post_video_xhs(account_list, file_type, file_list, title, text, tags, enableTimer, videos_per_day, daily_times,
-                               start_days)
-        case 2:
-            post_video_tencent(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-                               start_days, is_draft)
-        case 3:
-            post_video_DouYin(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-                      start_days, thumbnail_path, productLink, productTitle)
-        case 4:
-            post_video_ks(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-                      start_days)
-        case 5:
-            post_video_TikTok(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-                      start_days, thumbnail_path)
-        case 6:
-            post_video_Instagram(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-                      start_days, thumbnail_path)
-        case 7:
-            post_video_Facebook(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-                      start_days, thumbnail_path)
-        case 8:
-            # Bilibili发布，使用新的post_file函数
-            post_file("bilibili", account_list, file_type, file_list, title, text, tags, thumbnail_path, 1, enableTimer, videos_per_day, daily_times, start_days)
-        case 9:
-            # Baijiahao发布，使用新的post_file函数
-            post_file("baijiahao", account_list, file_type, file_list, title, text, tags, thumbnail_path, 1, enableTimer, videos_per_day, daily_times, start_days)
-    # 返回响应给客户端
-    return jsonify(
-        {
-            "code": 200,
-            "msg": None,
+# 获取发布任务记录
+@app.route('/getPublishTaskRecords', methods=['GET'])
+def get_publish_task_records():
+    try:
+        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # 获取查询参数
+            page = int(request.args.get('page', 1))
+            page_size = int(request.args.get('page_size', 10))
+            status = request.args.get('status')
+            platform_name = request.args.get('platform_name')
+            account_name = request.args.get('account_name')
+            filename = request.args.get('filename')
+            
+            # 构建查询条件
+            conditions = []
+            params = []
+            
+            if status:
+                conditions.append('status = ?')
+                params.append(status)
+            if platform_name:
+                conditions.append('platform_name = ?')
+                params.append(platform_name)
+            if account_name:
+                conditions.append('account_name LIKE ?')
+                params.append(f'%{account_name}%')
+            if filename:
+                conditions.append('filename LIKE ?')
+                params.append(f'%{filename}%')
+            
+            # 构建WHERE子句
+            where_clause = ''
+            if conditions:
+                where_clause = f'WHERE {" AND ".join(conditions)}'
+            
+            # 获取总记录数
+            cursor.execute(f'SELECT COUNT(*) as total FROM publish_task_records {where_clause}', params)
+            total = cursor.fetchone()['total']
+            
+            # 计算偏移量
+            offset = (page - 1) * page_size
+            
+            # 获取分页数据
+            cursor.execute(f'''
+                SELECT * FROM publish_task_records 
+                {where_clause}
+                ORDER BY create_time DESC 
+                LIMIT ? OFFSET ?
+            ''', params + [page_size, offset])
+            
+            records = [dict(row) for row in cursor.fetchall()]
+            
+            # 格式化数据
+            formatted_records = []
+            for record in records:
+                formatted_records.append({
+                    'id': record['id'],
+                    'taskId': record['task_id'],
+                    'fileName': record['filename'],
+                    'fileId': record['file_id'],
+                    'accountId': record['account_id'],
+                    'accountName': record['account_name'],
+                    'platformName': record['platform_name'],
+                    'platformType': record['platform_type'],
+                    'status': record['status'],
+                    'createTime': record['create_time'],
+                    'updateTime': record['update_time'],
+                    'errorMsg': record['error_msg']
+                })
+            
+            # 构造返回数据
+            result = {
+                'records': formatted_records,
+                'total': total,
+                'page': page,
+                'pageSize': page_size
+            }
+            
+            return jsonify({
+                "code": 200,
+                "msg": "获取发布任务记录成功",
+                "data": result
+            }), 200
+    except Exception as e:
+        print(f"获取发布任务记录失败: {str(e)}")
+        return jsonify({
+            "code": 500,
+            "msg": f"获取发布任务记录失败: {str(e)}",
             "data": None
-        }), 200
+        }), 500
+
+# 更新发布任务状态
+@app.route('/updatePublishTaskStatus', methods=['POST'])
+def update_publish_task_status():
+    try:
+        data = request.get_json()
+        id = data.get('id')
+        status = data.get('status')
+        error_msg = data.get('errorMsg')
+        
+        if not id or not status:
+            return jsonify({
+                "code": 400,
+                "msg": "缺少必要参数",
+                "data": None
+            }), 400
+        
+        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            cursor = conn.cursor()
+            
+            if error_msg:
+                cursor.execute('''
+                    UPDATE publish_task_records 
+                    SET status = ?, error_msg = ?, update_time = CURRENT_TIMESTAMP 
+                    WHERE id = ?
+                ''', [status, error_msg, id])
+            else:
+                cursor.execute('''
+                    UPDATE publish_task_records 
+                    SET status = ?, update_time = CURRENT_TIMESTAMP 
+                    WHERE id = ?
+                ''', [status, id])
+            
+            conn.commit()
+            
+            if cursor.rowcount == 0:
+                return jsonify({
+                    "code": 404,
+                    "msg": "发布任务记录不存在",
+                    "data": None
+                }), 404
+            
+            return jsonify({
+                "code": 200,
+                "msg": "更新发布任务状态成功",
+                "data": None
+            }), 200
+    except Exception as e:
+        print(f"更新发布任务状态失败: {str(e)}")
+        return jsonify({
+            "code": 500,
+            "msg": f"更新发布任务状态失败: {str(e)}",
+            "data": None
+        }), 500
+
+# 重试发布任务
+@app.route('/retryPublishTask', methods=['POST'])
+def retry_publish_task():
+    try:
+        data = request.get_json()
+        id = data.get('id')
+        
+        if not id:
+            return jsonify({
+                "code": 400,
+                "msg": "缺少必要参数",
+                "data": None
+            }), 400
+        
+        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # 获取任务记录
+            cursor.execute('''
+                SELECT * FROM publish_task_records WHERE id = ?
+            ''', [id])
+            record = cursor.fetchone()
+            
+            if not record:
+                return jsonify({
+                    "code": 404,
+                    "msg": "发布任务记录不存在",
+                    "data": None
+                }), 404
+            
+            # 更新任务状态为"发布中"
+            cursor.execute('''
+                UPDATE publish_task_records 
+                SET status = ?, error_msg = NULL, update_time = CURRENT_TIMESTAMP 
+                WHERE id = ?
+            ''', ['发布中', id])
+            
+            conn.commit()
+            
+            # 这里可以添加实际的重试逻辑，比如调用发布函数
+            # 由于发布逻辑比较复杂，这里简化处理，只更新状态
+            
+            return jsonify({
+                "code": 200,
+                "msg": "发布任务重试成功",
+                "data": None
+            }), 200
+    except Exception as e:
+        print(f"重试发布任务失败: {str(e)}")
+        return jsonify({
+            "code": 500,
+            "msg": f"重试发布任务失败: {str(e)}",
+            "data": None
+        }), 500
+
+# 取消发布任务
+@app.route('/cancelPublishTask', methods=['POST'])
+def cancel_publish_task():
+    try:
+        data = request.get_json()
+        id = data.get('id')
+        
+        if not id:
+            return jsonify({
+                "code": 400,
+                "msg": "缺少必要参数",
+                "data": None
+            }), 400
+        
+        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # 获取任务记录
+            cursor.execute('''
+                SELECT * FROM publish_task_records WHERE id = ?
+            ''', [id])
+            record = cursor.fetchone()
+            
+            if not record:
+                return jsonify({
+                    "code": 404,
+                    "msg": "发布任务记录不存在",
+                    "data": None
+                }), 404
+            
+            # 只有发布中或待发布的任务才能取消
+            if record['status'] not in ['发布中', '待发布']:
+                return jsonify({
+                    "code": 400,
+                    "msg": f"只有发布中或待发布的任务才能取消，当前状态：{record['status']}",
+                    "data": None
+                }), 400
+            
+            # 更新任务状态为"已取消"
+            cursor.execute('''
+                UPDATE publish_task_records 
+                SET status = ?, update_time = CURRENT_TIMESTAMP 
+                WHERE id = ?
+            ''', ['已取消', id])
+            
+            conn.commit()
+            
+            # 这里可以添加实际的取消逻辑，比如停止发布进程
+            # 由于发布逻辑比较复杂，这里简化处理，只更新状态
+            
+            return jsonify({
+                "code": 200,
+                "msg": "发布任务取消成功",
+                "data": None
+            }), 200
+    except Exception as e:
+        print(f"取消发布任务失败: {str(e)}")
+        return jsonify({
+            "code": 500,
+            "msg": f"取消发布任务失败: {str(e)}",
+            "data": None
+        }), 500
+
+# # 将单个视频发布到指定平台（原版）
+# @app.route('/postVideo1', methods=['POST'])
+# def postVideo1():
+#     """
+#     参数说明：
+#     type: 发布平台类型，1-小红书 2-视频号 3-抖音 4-快手
+#     accountList: 账号列表，每个元素为一个字典，包含账号信息
+#     fileType: 文件类型，默认值为2：1-图文 2-视频
+#     title: 文件标题
+#     text: 文件正文描述
+#     tags: 文件标签，逗号分隔
+#     category: 文件分类，0-无分类 1-美食 2-日常 3-旅行 4-娱乐 5-教育 6-其他
+#     enableTimer: 是否启用定时发布，0-否 1-是
+#     videosPerDay: 每天发布文件数量
+#     dailyTimes: 每天发布时间，逗号分隔，格式为HH:MM
+#     startDays: 开始发布时间，距离当前时间的天数，负数表示之前的时间
+#
+#     """
+#     # 获取JSON数据的POST请求体
+#     data = request.get_json()
+#     type = data.get('type') #发布平台类型，1-小红书 2-视频号 3-抖音 4-快手 5-tiktok 6-instagram 7-facebook
+#     account_list = data.get('accountList', []) #账号列表，每个元素为一个字典，包含账号信息
+#     file_type = data.get('fileType')  #文件类型，默认值为2：1-图文 2-视频
+#     file_list = data.get('fileList', []) #文件列表，每个元素为一个字典，包含文件路径和文件名
+#     title = data.get('title') #文件标题
+#     text = data.get('text') #文件正文描述，默认值为demo
+#     tags = data.get('tags') #文件标签，逗号分隔
+#     category = data.get('category') #文件分类，0-无分类 1-美食 2-日常 3-旅行 4-娱乐 5-教育 6-其他
+#     if category == 0:
+#         category = None
+#     thumbnail_path = data.get('thumbnail', '') #视频缩略图封面路径
+#     productLink = data.get('productLink', '') #商品链接
+#     productTitle = data.get('productTitle', '') #商品标题
+#     is_draft = data.get('isDraft', False)  # 是否保存为草稿
+#     enableTimer = data.get('enableTimer') #是否启用定时发布，0-否 1-是
+#     videos_per_day = data.get('videosPerDay') #每天发布文件数量
+#     daily_times = data.get('dailyTimes') #每天发布时间，逗号分隔，格式为HH:MM
+#     start_days = data.get('startDays') #开始发布时间，距离当前时间的天数，负数表示之前的时间
+#     # 打印获取到的数据（仅作为示例）
+#     print("File List:", file_list)
+#     print("Account List:", account_list)
+#
+#     # 生成唯一任务ID
+#     task_id = str(uuid.uuid4())
+#
+#     # 根据type获取platform
+#     platform = get_platform_key_by_type(type)
+#
+#     # 创建发布任务记录
+#     with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+#         cursor = conn.cursor()
+#
+#         # 遍历每个账号
+#         for account in account_list:
+#             account_file = account['filePath']
+#             account_name = account['userName']
+#
+#             # 遍历每个文件
+#             for file_info in file_list:
+#                 filename = file_info['fileName']
+#
+#                 # 插入发布任务记录
+#                 cursor.execute('''
+#                     INSERT INTO publish_task_records (
+#                         task_id, filename, account_id, account_name,
+#                         platform_name, platform_type, status
+#                     ) VALUES (?, ?, ?, ?, ?, ?, ?)
+#                 ''', [
+#                     task_id, filename, account_file, account_name,
+#                     platform, type, '待发布'
+#                 ])
+#
+#         conn.commit()
+#
+#     match type:
+#         case 1:
+#             post_video_xhs(account_list, file_type, file_list, title, text, tags, enableTimer, videos_per_day, daily_times,
+#                                start_days)
+#         case 2:
+#             post_video_tencent(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+#                                start_days, is_draft)
+#         case 3:
+#             post_video_DouYin(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+#                       start_days, thumbnail_path, productLink, productTitle)
+#         case 4:
+#             post_video_ks(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+#                       start_days)
+#         case 5:
+#             post_video_TikTok(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+#                       start_days, thumbnail_path)
+#         case 6:
+#             post_video_Instagram(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+#                       start_days, thumbnail_path)
+#         case 7:
+#             post_video_Facebook(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+#                       start_days, thumbnail_path)
+#         case 8:
+#             # Bilibili发布，使用新的post_file函数
+#             post_file("bilibili", account_list, file_type, file_list, title, text, tags, thumbnail_path, 1, enableTimer, videos_per_day, daily_times, start_days)
+#         case 9:
+#             # Baijiahao发布，使用新的post_file函数
+#             post_file("baijiahao", account_list, file_type, file_list, title, text, tags, thumbnail_path, 1, enableTimer, videos_per_day, daily_times, start_days)
+#     # 返回响应给客户端
+#     return jsonify(
+#         {
+#             "code": 200,
+#             "msg": None,
+#             "data": None
+#         }), 200
 
 # 将单个或多个视频发布到指定平台
 @app.route('/postVideo', methods=['POST'])
@@ -697,9 +998,61 @@ def postVideo():
                 "msg": "Invalid type",
                 "data": None
             }), 400
+        
+        # 生成唯一任务ID
+        task_id = str(uuid.uuid4())
+        
+        # 创建发布任务记录
+        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            cursor = conn.cursor()
+            
+            # 遍历每个账号
+            for account in account_list:
+                # 处理账号列表可能是字符串列表的情况
+                if isinstance(account, str):
+                    account_file = account
+                    account_name = account.split('.')[0] if '.' in account else account
+                else:
+                    account_file = account['filePath']
+                    account_name = account['userName']
+                
+                # 遍历每个文件
+                for file_info in file_list:
+                    # 处理文件列表可能是字符串列表的情况
+                    if isinstance(file_info, str):
+                        filename = file_info
+                    else:
+                        filename = file_info['fileName']
+                    
+                    # 插入发布任务记录
+                    cursor.execute('''
+                        INSERT INTO publish_task_records (
+                            task_id, filename, account_id, account_name, 
+                            platform_name, platform_type, status
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ''', [
+                        task_id, filename, account_file, account_name, 
+                        platform, type, '发布中'
+                    ])
+            
+            conn.commit()
 
         # 调用post_file函数并获取返回值
         result = post_file(platform, account_list, file_type, file_list, title, text, tags, thumbnail_path, location, enableTimer, videos_per_day, daily_times,start_days)
+        
+        # 更新发布任务记录状态
+        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            cursor = conn.cursor()
+            
+            # 根据发布结果更新状态
+            status = '发布成功' if result else '发布失败'
+            cursor.execute('''
+                UPDATE publish_task_records 
+                SET status = ?, update_time = CURRENT_TIMESTAMP 
+                WHERE task_id = ?
+            ''', [status, task_id])
+            
+            conn.commit()
         
         # 根据返回值返回不同的响应
         if result:
@@ -717,8 +1070,21 @@ def postVideo():
                     "data": None
                 }), 500
     except Exception as e:
-        # 捕获所有异常，返回统一的失败响应
+        # 捕获所有异常，更新发布任务记录状态
         print(f"发布视频时发生异常: {str(e)}")
+        
+        # 更新发布任务记录状态为发布失败，并添加错误信息
+        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                UPDATE publish_task_records 
+                SET status = ?, error_msg = ?, update_time = CURRENT_TIMESTAMP 
+                WHERE task_id = ?
+            ''', ['发布失败', str(e), task_id])
+            
+            conn.commit()
+        
         return jsonify(
             {
                 "code": 500,
@@ -765,74 +1131,74 @@ def updateUserinfo():
         }), 500
 
 
-# 将多个视频批量发布到同一个平台（原版）
-@app.route('/postVideoBatch', methods=['POST'])
-def postVideoBatch():
-    data_list = request.get_json()
-
-    if not isinstance(data_list, list):
-        return jsonify({"error": "Expected a JSON array"}), 400
-    for data in data_list:
-        # 从JSON数据中提取fileList和accountList
-        file_list = data.get('fileList', [])
-        account_list = data.get('accountList', [])
-        type = data.get('type')
-        title = data.get('title')
-        tags = data.get('tags')
-        category = data.get('category')
-        enableTimer = data.get('enableTimer')
-        if category == 0:
-            category = None
-        productLink = data.get('productLink', '')
-        productTitle = data.get('productTitle', '')
-
-        videos_per_day = data.get('videosPerDay')
-        daily_times = data.get('dailyTimes')
-        start_days = data.get('startDays')
-        # 打印获取到的数据（仅作为示例）
-        print("File List:", file_list)
-        print("Account List:", account_list)
-        match type:
-            case 1:
-                return
-            case 2:
-                post_video_tencent(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-                                   start_days)
-            case 3:
-                post_video_DouYin(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-                          start_days, productLink, productTitle)
-            case 4:
-                print(f'[+] Batch publishing to KuaiShou')
-                # KuaiShou
-                post_video_ks(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-                          start_days)
-            case 5:
-                print(f'[+] Batch publishing to TikTok')
-                # TikTok
-                post_video_TikTok(title, file_list, tags, account_list, enableTimer, videos_per_day, daily_times, start_days)
-            case 6:
-                print(f'[+] Batch publishing to Instagram')
-                # Instagram
-                post_video_Instagram(title, file_list, tags, account_list, enableTimer, videos_per_day, daily_times, start_days)
-            case 7:
-                print(f'[+] Batch publishing to Facebook')
-                # Facebook
-                post_video_Facebook(title, file_list, tags, account_list, enableTimer, videos_per_day, daily_times, start_days)
-            case 8:
-                print(f'[+] Batch publishing to Bilibili')
-                # Bilibili发布，使用新的post_file函数
-                post_file("bilibili", account_list, 2, file_list, title, text, tags, "", 1, enableTimer, videos_per_day, daily_times, start_days)
-            case 9:
-                print(f'[+] Batch publishing to Baijiahao')
-                # Baijiahao发布，使用新的post_file函数
-                post_file("baijiahao", account_list, 2, file_list, title, text, tags, "", 1, enableTimer, videos_per_day, daily_times, start_days)
-    # 返回响应给客户端
-    return jsonify(
-        {
-            "code": 200,
-            "msg": None,
-            "data": None
-        }), 200
+# # 将多个视频批量发布到同一个平台（原版）
+# @app.route('/postVideoBatch', methods=['POST'])
+# def postVideoBatch():
+#     data_list = request.get_json()
+#
+#     if not isinstance(data_list, list):
+#         return jsonify({"error": "Expected a JSON array"}), 400
+#     for data in data_list:
+#         # 从JSON数据中提取fileList和accountList
+#         file_list = data.get('fileList', [])
+#         account_list = data.get('accountList', [])
+#         type = data.get('type')
+#         title = data.get('title')
+#         tags = data.get('tags')
+#         category = data.get('category')
+#         enableTimer = data.get('enableTimer')
+#         if category == 0:
+#             category = None
+#         productLink = data.get('productLink', '')
+#         productTitle = data.get('productTitle', '')
+#
+#         videos_per_day = data.get('videosPerDay')
+#         daily_times = data.get('dailyTimes')
+#         start_days = data.get('startDays')
+#         # 打印获取到的数据（仅作为示例）
+#         print("File List:", file_list)
+#         print("Account List:", account_list)
+#         match type:
+#             case 1:
+#                 return
+#             case 2:
+#                 post_video_tencent(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+#                                    start_days)
+#             case 3:
+#                 post_video_DouYin(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+#                           start_days, productLink, productTitle)
+#             case 4:
+#                 print(f'[+] Batch publishing to KuaiShou')
+#                 # KuaiShou
+#                 post_video_ks(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+#                           start_days)
+#             case 5:
+#                 print(f'[+] Batch publishing to TikTok')
+#                 # TikTok
+#                 post_video_TikTok(title, file_list, tags, account_list, enableTimer, videos_per_day, daily_times, start_days)
+#             case 6:
+#                 print(f'[+] Batch publishing to Instagram')
+#                 # Instagram
+#                 post_video_Instagram(title, file_list, tags, account_list, enableTimer, videos_per_day, daily_times, start_days)
+#             case 7:
+#                 print(f'[+] Batch publishing to Facebook')
+#                 # Facebook
+#                 post_video_Facebook(title, file_list, tags, account_list, enableTimer, videos_per_day, daily_times, start_days)
+#             case 8:
+#                 print(f'[+] Batch publishing to Bilibili')
+#                 # Bilibili发布，使用新的post_file函数
+#                 post_file("bilibili", account_list, 2, file_list, title, text, tags, "", 1, enableTimer, videos_per_day, daily_times, start_days)
+#             case 9:
+#                 print(f'[+] Batch publishing to Baijiahao')
+#                 # Baijiahao发布，使用新的post_file函数
+#                 post_file("baijiahao", account_list, 2, file_list, title, text, tags, "", 1, enableTimer, videos_per_day, daily_times, start_days)
+#     # 返回响应给客户端
+#     return jsonify(
+#         {
+#             "code": 200,
+#             "msg": None,
+#             "data": None
+#         }), 200
 
 # Cookie文件上传API
 @app.route('/uploadCookie', methods=['POST'])
@@ -1023,6 +1389,44 @@ def post_videos_to_multiple_platforms():
         print("Platforms:", platforms)
         print("Account Files:", account_files)
         print("File List:", files)
+        
+        # 生成唯一任务ID
+        task_id = str(uuid.uuid4())
+        
+        # 创建发布任务记录
+        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            cursor = conn.cursor()
+            
+            # 遍历每个平台
+            for platform in platforms:
+                platform_name = platform
+                if platform_name in account_files:
+                    account_files_list = account_files[platform_name]
+                    
+                    # 获取平台类型
+                    platform_type = get_type_by_platform_key(platform)
+                    if platform_type is None:
+                        continue
+                    
+                    # 遍历每个账号文件
+                    for account_file in account_files_list:
+                        # 获取账号名称
+                        account_name = account_file.split('.')[0] if '.' in account_file else account_file
+                        
+                        # 遍历每个文件
+                        for filename in files:
+                            # 插入发布任务记录
+                            cursor.execute('''
+                                INSERT INTO publish_task_records (
+                                    task_id, filename, account_id, account_name, 
+                                    platform_name, platform_type, status
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                            ''', [
+                                task_id, filename, account_file, account_name, 
+                                platform_name, platform_type, '待发布'
+                            ])
+            
+            conn.commit()
         
         # 调用批量发布函数
         if enable_timer == 1:

@@ -25,5 +25,10 @@ export const publishApi = {
   // 获取平台特定参数配置
   getPlatformConfig(platformType) {
     return http.get(`/platformConfig?type=${platformType}`)
+  },
+  
+  // 获取发布任务记录
+  getPublishTaskRecords(params) {
+    return http.get('/getPublishTaskRecords', params)
   }
 }

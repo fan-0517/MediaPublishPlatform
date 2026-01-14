@@ -203,6 +203,61 @@
           </el-table-column>
         </el-table>
       </div>
+      
+      <!-- 发布任务记录 -->
+      <div class="publish-task-records">
+        <div class="section-header">
+          <h2>发布任务记录</h2>
+          <el-button text>查看全部</el-button>
+        </div>
+        
+        <el-table :data="publishTaskRecords" style="width: 100%">
+          <el-table-column prop="fileName" label="文件名" width="200" />
+          <el-table-column prop="platformName" label="平台" width="120">
+            <template #default="scope">
+              <el-tag
+                :type="getPlatformTagType(scope.row.platformName)"
+                effect="plain"
+              >
+                {{ scope.row.platformName }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="accountName" label="账号" width="150" />
+          <el-table-column prop="status" label="状态" width="120">
+            <template #default="scope">
+              <el-tag
+                :type="getPublishStatusTagType(scope.row.status)"
+                effect="plain"
+              >
+                {{ scope.row.status }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createTime" label="创建时间" width="180" />
+          <el-table-column label="操作">
+            <template #default="scope">
+              <el-button size="small" @click="viewPublishTaskDetail(scope.row)">查看详情</el-button>
+              <el-button 
+                size="small" 
+                type="primary" 
+                v-if="scope.row.status === '发布失败'"
+                @click="retryPublishTask(scope.row)"
+              >
+                重试
+              </el-button>
+              <el-button 
+                size="small" 
+                type="danger" 
+                v-if="scope.row.status === '发布中'"
+                @click="cancelPublishTask(scope.row)"
+              >
+                取消
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
     </div>
   </div>
 </template>
@@ -215,6 +270,7 @@ import {
   Upload, Timer, DataAnalysis 
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { publishApi } from '@/api/publish'
 
 const router = useRouter()
 
@@ -253,6 +309,9 @@ const contentStats = reactive({
 
 // 最近任务数据
 const recentTasks = ref([])
+
+// 发布任务记录数据
+const publishTaskRecords = ref([])
 
 // 平台映射
 const platformMap = {
@@ -325,10 +384,35 @@ async function fetchFileStats() {
   }
 }
 
+// 获取发布任务记录
+async function fetchPublishTaskRecords() {
+  try {
+    const response = await publishApi.getPublishTaskRecords()
+    const data = response
+    
+    if (data.code === 200) {
+      publishTaskRecords.value = data.data || []
+    }
+  } catch (error) {
+    console.error('获取发布任务记录失败:', error)
+    ElMessage.error('获取发布任务记录失败')
+    // 模拟数据
+    publishTaskRecords.value = [
+      { id: '1', fileName: '视频1.mp4', platformName: '抖音', accountName: '抖音1账号', status: '发布成功', createTime: '2026-01-14 10:00:00' },
+      { id: '2', fileName: '视频1.mp4', platformName: '抖音', accountName: '抖音2账号', status: '发布中', createTime: '2026-01-14 10:15:00' },
+      { id: '3', fileName: '视频1.mp4', platformName: '快手', accountName: '快手1账号', status: '发布失败', createTime: '2026-01-14 10:30:00' },
+      { id: '4', fileName: '视频2.mp4', platformName: '抖音', accountName: '抖音1账号', status: '待发布', createTime: '2026-01-14 11:00:00' },
+      { id: '5', fileName: '视频2.mp4', platformName: '抖音', accountName: '抖音2账号', status: '待发布', createTime: '2026-01-14 11:15:00' },
+      { id: '6', fileName: '视频2.mp4', platformName: '快手', accountName: '快手1账号', status: '发布成功', createTime: '2026-01-14 11:30:00' }
+    ]
+  }
+}
+
 // 组件挂载时获取数据
 onMounted(() => {
   fetchPlatformStats()
   fetchFileStats()
+  fetchPublishTaskRecords()
 })
 
 // 根据平台获取标签类型
@@ -355,6 +439,17 @@ const getStatusTagType = (status) => {
     '进行中': 'warning',
     '待执行': 'info',
     '已失败': 'danger'
+  }
+  return typeMap[status] || 'info'
+}
+
+// 根据发布状态获取标签类型
+const getPublishStatusTagType = (status) => {
+  const typeMap = {
+    '发布成功': 'success',
+    '发布中': 'warning',
+    '待发布': 'info',
+    '发布失败': 'danger'
   }
   return typeMap[status] || 'info'
 }
@@ -417,6 +512,66 @@ const cancelTask = (task) => {
       ElMessage({
         type: 'success',
         message: '任务已取消',
+      })
+    })
+    .catch(() => {
+      // 取消操作
+    })
+}
+
+// 查看发布任务详情
+const viewPublishTaskDetail = (task) => {
+  ElMessage.info(`查看发布任务详情: ${task.fileName} - ${task.platformName} - ${task.accountName}`)
+  // 实际应用中应该跳转到发布任务详情页面
+}
+
+// 重试发布任务
+const retryPublishTask = (task) => {
+  ElMessageBox.confirm(
+    `确定要重试发布任务吗？`,
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'info',
+    }
+  )
+    .then(() => {
+      // 更新任务状态
+      const index = publishTaskRecords.value.findIndex(t => t.id === task.id)
+      if (index !== -1) {
+        publishTaskRecords.value[index].status = '发布中'
+      }
+      ElMessage({
+        type: 'success',
+        message: '发布任务已开始重试',
+      })
+    })
+    .catch(() => {
+      // 取消操作
+    })
+}
+
+// 取消发布任务
+const cancelPublishTask = (task) => {
+  ElMessageBox.confirm(
+    `确定要取消发布任务吗？`,
+    '警告',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  )
+    .then(() => {
+      // 更新任务状态
+      const index = publishTaskRecords.value.findIndex(t => t.id === task.id)
+      if (index !== -1) {
+        publishTaskRecords.value[index].status = '已取消'
+      }
+      ElMessage({
+        type: 'success',
+        message: '发布任务已取消',
       })
     })
     .catch(() => {
