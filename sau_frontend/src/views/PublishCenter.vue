@@ -544,8 +544,8 @@ const platforms = [
   { key: 5, name: 'TikTok' },
   { key: 6, name: 'Instagram' },
   { key: 7, name: 'Facebook' },
-  { key: 8, name: 'Bilibili' },
-  { key: 9, name: 'Baijiahao' }
+  { key: 8, name: '哔哩哔哩' },
+  { key: 9, name: '百家号' }
 ]
 
 const defaultTabInit = {
@@ -632,8 +632,8 @@ const availableAccounts = computed(() => {
     5: 'TikTok',
     6: 'Instagram',
     7: 'Facebook',
-    8: 'Bilibili',
-    9: 'Baijiahao'
+    8: '哔哩哔哩',
+    9: '百家号'
   }
   
   // 获取当前选中的所有平台对应的平台名称

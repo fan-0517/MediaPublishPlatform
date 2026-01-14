@@ -582,7 +582,7 @@
           </div>
         </el-tab-pane>
         
-        <el-tab-pane label="Bilibili" name="bilibili">
+        <el-tab-pane label="哔哩哔哩" name="bilibili">
           <div class="account-list-container">
             <div class="account-search">
               <el-input
@@ -654,7 +654,7 @@
           </div>
         </el-tab-pane>
         
-        <el-tab-pane label="Baijiahao" name="baijiahao">
+        <el-tab-pane label="百家号" name="baijiahao">
           <div class="account-list-container">
             <div class="account-search">
               <el-input
@@ -752,8 +752,8 @@
               <el-option label="TikTok" value="TikTok" />
               <el-option label="Instagram" value="Instagram" />
               <el-option label="Facebook" value="Facebook" />
-              <el-option label="Bilibili" value="Bilibili" />
-              <el-option label="Baijiahao" value="Baijiahao" />
+              <el-option label="哔哩哔哩" value="哔哩哔哩" />
+              <el-option label="百家号" value="百家号" />
             </el-select>
         </el-form-item>
         <el-form-item label="名称" prop="name">
@@ -901,8 +901,8 @@ const getPlatformTagType = (platform) => {
     'TikTok': 'primary',
     'Instagram': 'danger',
     'Facebook': 'success',
-    'Bilibili': 'info',
-    'Baijiahao': 'warning'
+    '哔哩哔哩': 'info',
+    '百家号': 'warning'
   }
   return typeMap[platform] || 'info'
 }
@@ -969,11 +969,11 @@ const filteredFacebookAccounts = computed(() => {
 })
 
 const filteredBilibiliAccounts = computed(() => {
-  return filteredAccounts.value.filter(account => account.platform === 'Bilibili')
+  return filteredAccounts.value.filter(account => account.platform === '哔哩哔哩')
 })
 
 const filteredBaijiahaoAccounts = computed(() => {
-  return filteredAccounts.value.filter(account => account.platform === 'Baijiahao')
+  return filteredAccounts.value.filter(account => account.platform === '百家号')
 })
 
 // 搜索处理
@@ -1199,8 +1199,10 @@ const getDefaultAvatar = (name, platform) => {
     'facebook': facebookIcon,
     'Bilibili': bilibiliIcon,
     'bilibili': bilibiliIcon,
+    '哔哩哔哩': bilibiliIcon,
     'Baijiahao': baijiahaoIcon,
-    'baijiahao': baijiahaoIcon
+    'baijiahao': baijiahaoIcon,
+    '百家号': baijiahaoIcon
   };
   
   console.log('当前平台:', platform, '类型:', typeof platform);
@@ -1259,7 +1261,9 @@ const connectSSE = (platform, name) => {
     'Instagram': '6',
     'Facebook': '7',
     'Bilibili': '8',
-    'Baijiahao': '9'
+    '哔哩哔哩': '8',
+    'Baijiahao': '9',
+    '百家号': '9'
   }
 
   const type = platformTypeMap[platform] || '1'
