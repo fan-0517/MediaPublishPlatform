@@ -1004,6 +1004,7 @@ def postVideo():
         
         # 创建发布任务记录
         with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
             # 遍历每个账号
@@ -1011,7 +1012,10 @@ def postVideo():
                 # 处理账号列表可能是字符串列表的情况
                 if isinstance(account, str):
                     account_file = account
-                    account_name = account.split('.')[0] if '.' in account else account
+                    # 从数据库中查询账号名称
+                    cursor.execute('SELECT userName FROM user_info WHERE filePath = ?', [account_file])
+                    result = cursor.fetchone()
+                    account_name = result['userName'] if result else account_file.split('.')[0] if '.' in account_file else account_file
                 else:
                     account_file = account['filePath']
                     account_name = account['userName']
@@ -1024,14 +1028,24 @@ def postVideo():
                     else:
                         filename = file_info['fileName']
                     
+                    # 解析文件名，提取文件ID和真正的文件名
+                    # 格式：file_id_filename.ext -> file_id: file_id, filename: filename.ext
+                    if '_' in filename:
+                        parts = filename.split('_')
+                        file_id = parts[0]
+                        real_filename = '_'.join(parts[1:])
+                    else:
+                        file_id = None
+                        real_filename = filename
+                    
                     # 插入发布任务记录
                     cursor.execute('''
                         INSERT INTO publish_task_records (
-                            task_id, filename, account_id, account_name, 
+                            task_id, filename, file_id, account_id, account_name, 
                             platform_name, platform_type, status
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     ''', [
-                        task_id, filename, account_file, account_name, 
+                        task_id, real_filename, file_id, account_file, account_name, 
                         platform, type, '发布中'
                     ])
             
@@ -1395,6 +1409,7 @@ def post_videos_to_multiple_platforms():
         
         # 创建发布任务记录
         with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
             # 遍历每个平台
@@ -1410,19 +1425,31 @@ def post_videos_to_multiple_platforms():
                     
                     # 遍历每个账号文件
                     for account_file in account_files_list:
-                        # 获取账号名称
-                        account_name = account_file.split('.')[0] if '.' in account_file else account_file
+                        # 从数据库中查询账号名称
+                        cursor.execute('SELECT userName FROM user_info WHERE filePath = ?', [account_file])
+                        result = cursor.fetchone()
+                        account_name = result['userName'] if result else account_file.split('.')[0]
                         
                         # 遍历每个文件
                         for filename in files:
+                            # 解析文件名，提取文件ID和真正的文件名
+                            # 格式：file_id_filename.ext -> file_id: file_id, filename: filename.ext
+                            if '_' in filename:
+                                parts = filename.split('_')
+                                file_id = parts[0]
+                                real_filename = '_'.join(parts[1:])
+                            else:
+                                file_id = None
+                                real_filename = filename
+                            
                             # 插入发布任务记录
                             cursor.execute('''
                                 INSERT INTO publish_task_records (
-                                    task_id, filename, account_id, account_name, 
+                                    task_id, filename, file_id, account_id, account_name, 
                                     platform_name, platform_type, status
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                             ''', [
-                                task_id, filename, account_file, account_name, 
+                                task_id, real_filename, file_id, account_file, account_name, 
                                 platform_name, platform_type, '待发布'
                             ])
             
