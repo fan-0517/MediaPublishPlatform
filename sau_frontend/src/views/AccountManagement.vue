@@ -1174,6 +1174,8 @@ import tiktokIcon from '@/assets/tiktok.jpg';
 import instagramIcon from '@/assets/instagram.svg';
 import insIcon from '@/assets/Ins.jpg';
 import facebookIcon from '@/assets/facebook.jpg';
+import bilibiliIcon from '@/assets/bilibili.jpg';
+import baijiahaoIcon from '@/assets/baijiahao.jpg';
 
 // 获取默认头像
 const getDefaultAvatar = (name, platform) => {
@@ -1195,10 +1197,10 @@ const getDefaultAvatar = (name, platform) => {
     'ins': insIcon,
     'Facebook': facebookIcon,
     'facebook': facebookIcon,
-    'Bilibili': kuaishouIcon,
-    'bilibili': kuaishouIcon,
-    'Baijiahao': kuaishouIcon,
-    'baijiahao': kuaishouIcon
+    'Bilibili': bilibiliIcon,
+    'bilibili': bilibiliIcon,
+    'Baijiahao': baijiahaoIcon,
+    'baijiahao': baijiahaoIcon
   };
   
   console.log('当前平台:', platform, '类型:', typeof platform);
