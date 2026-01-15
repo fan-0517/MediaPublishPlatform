@@ -836,8 +836,14 @@ const fetchAccountsQuick = async () => {
   try {
     const res = await accountApi.getAccounts()
     if (res.code === 200 && res.data) {
-      // 保留从数据库获取的真实状态，不修改
-      accountStore.setAccounts(res.data);
+      // 将所有账号的状态暂时设为"验证中"
+      const accountsWithPendingStatus = res.data.map(account => {
+        // account[4] 是状态字段，暂时设为"验证中"
+        const updatedAccount = [...account];
+        updatedAccount[4] = '验证中'; // 临时状态
+        return updatedAccount;
+      });
+      accountStore.setAccounts(accountsWithPendingStatus);
     }
   } catch (error) {
     console.error('快速获取账号数据失败:', error)
@@ -889,6 +895,11 @@ const validateAllAccountsInBackground = async () => {
 onMounted(() => {
   // 快速获取账号列表（不验证），立即显示
   fetchAccountsQuick()
+
+  // 在后台验证所有账号
+  setTimeout(() => {
+    validateAllAccountsInBackground()
+  }, 100) // 稍微延迟一下，让用户看到快速加载的效果
 })
 
 // 获取平台标签类型
