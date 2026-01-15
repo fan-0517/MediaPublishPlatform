@@ -347,7 +347,26 @@ async function fetchPublishTaskRecords() {
       { id: '5', fileName: '视频2.mp4', platformName: '抖音', accountName: '抖音2账号', status: '待发布', createTime: '2026-01-14 11:15:00', updateTime: '2026-01-14 11:15:00' },
       { id: '6', fileName: '视频2.mp4', platformName: '快手', accountName: '快手1账号', status: '发布成功', createTime: '2026-01-14 11:30:00', updateTime: '2026-01-14 11:35:00' }
     ]
+  } finally {
+    // 更新任务统计数据
+    updateTaskStats()
   }
+}
+
+// 更新任务统计数据
+function updateTaskStats() {
+  const records = publishTaskRecords.value || []
+  
+  // 计算各状态任务数量
+  const completedCount = records.filter(record => record.status === '发布成功').length
+  const inProgressCount = records.filter(record => record.status === '发布中' || record.status === '待发布').length
+  const failedCount = records.filter(record => record.status === '发布失败' || record.status === '已取消').length
+  
+  // 更新任务统计
+  taskStats.total = records.length
+  taskStats.completed = completedCount
+  taskStats.inProgress = inProgressCount
+  taskStats.failed = failedCount
 }
 
 // 组件挂载时获取数据
@@ -414,6 +433,8 @@ const retryPublishTask = (task) => {
       if (index !== -1) {
         publishTaskRecords.value[index].status = '发布中'
         publishTaskRecords.value[index].updateTime = new Date().toLocaleString()
+        // 更新任务统计
+        updateTaskStats()
       }
       ElMessage({
         type: 'success',
@@ -442,6 +463,8 @@ const cancelPublishTask = (task) => {
       if (index !== -1) {
         publishTaskRecords.value[index].status = '已取消'
         publishTaskRecords.value[index].updateTime = new Date().toLocaleString()
+        // 更新任务统计
+        updateTaskStats()
       }
       ElMessage({
         type: 'success',
