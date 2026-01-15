@@ -149,65 +149,10 @@
         </el-row>
       </div>
       
-      <!-- 最近任务列表 -->
-      <div class="recent-tasks">
-        <div class="section-header">
-          <h2>最近任务</h2>
-          <el-button text>查看全部</el-button>
-        </div>
-        
-        <el-table :data="recentTasks" style="width: 100%">
-          <el-table-column prop="title" label="任务名称" width="250" />
-          <el-table-column prop="platform" label="平台" width="120">
-            <template #default="scope">
-              <el-tag
-                :type="getPlatformTagType(scope.row.platform)"
-                effect="plain"
-              >
-                {{ scope.row.platform }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="account" label="账号" width="150" />
-          <el-table-column prop="createTime" label="创建时间" width="180" />
-          <el-table-column prop="status" label="状态" width="120">
-            <template #default="scope">
-              <el-tag
-                :type="getStatusTagType(scope.row.status)"
-                effect="plain"
-              >
-                {{ scope.row.status }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作">
-            <template #default="scope">
-              <el-button size="small" @click="viewTaskDetail(scope.row)">查看</el-button>
-              <el-button 
-                size="small" 
-                type="primary" 
-                v-if="scope.row.status === '待执行'"
-                @click="executeTask(scope.row)"
-              >
-                执行
-              </el-button>
-              <el-button 
-                size="small" 
-                type="danger" 
-                v-if="scope.row.status !== '已完成' && scope.row.status !== '已失败'"
-                @click="cancelTask(scope.row)"
-              >
-                取消
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-      
       <!-- 发布任务记录 -->
       <div class="publish-task-records">
         <div class="section-header">
-          <h2>发布任务记录</h2>
+          <h2>最近发布任务</h2>
           <el-button text>查看全部</el-button>
         </div>
         
@@ -235,7 +180,7 @@
             </template>
           </el-table-column>
           <el-table-column prop="createTime" label="创建时间" width="180" />
-          <el-table-column label="操作">
+          <el-table-column label="操作" width="200">
             <template #default="scope">
               <el-button size="small" @click="viewPublishTaskDetail(scope.row)">查看详情</el-button>
               <el-button 
@@ -249,7 +194,7 @@
               <el-button 
                 size="small" 
                 type="danger" 
-                v-if="scope.row.status === '发布中'"
+                v-if="scope.row.status === '发布中' || scope.row.status === '待发布'"
                 @click="cancelPublishTask(scope.row)"
               >
                 取消
@@ -306,9 +251,6 @@ const contentStats = reactive({
   published: 0,
   draft: 0
 })
-
-// 最近任务数据
-const recentTasks = ref([])
 
 // 发布任务记录数据
 const publishTaskRecords = ref([])
@@ -391,19 +333,19 @@ async function fetchPublishTaskRecords() {
     const data = response
     
     if (data.code === 200) {
-      publishTaskRecords.value = data.data || []
+      publishTaskRecords.value = data.data.records || []
     }
   } catch (error) {
     console.error('获取发布任务记录失败:', error)
     ElMessage.error('获取发布任务记录失败')
     // 模拟数据
     publishTaskRecords.value = [
-      { id: '1', fileName: '视频1.mp4', platformName: '抖音', accountName: '抖音1账号', status: '发布成功', createTime: '2026-01-14 10:00:00' },
-      { id: '2', fileName: '视频1.mp4', platformName: '抖音', accountName: '抖音2账号', status: '发布中', createTime: '2026-01-14 10:15:00' },
-      { id: '3', fileName: '视频1.mp4', platformName: '快手', accountName: '快手1账号', status: '发布失败', createTime: '2026-01-14 10:30:00' },
-      { id: '4', fileName: '视频2.mp4', platformName: '抖音', accountName: '抖音1账号', status: '待发布', createTime: '2026-01-14 11:00:00' },
-      { id: '5', fileName: '视频2.mp4', platformName: '抖音', accountName: '抖音2账号', status: '待发布', createTime: '2026-01-14 11:15:00' },
-      { id: '6', fileName: '视频2.mp4', platformName: '快手', accountName: '快手1账号', status: '发布成功', createTime: '2026-01-14 11:30:00' }
+      { id: '1', fileName: '视频1.mp4', platformName: '抖音', accountName: '抖音1账号', status: '发布成功', createTime: '2026-01-14 10:00:00', updateTime: '2026-01-14 10:05:00' },
+      { id: '2', fileName: '视频1.mp4', platformName: '抖音', accountName: '抖音2账号', status: '发布中', createTime: '2026-01-14 10:15:00', updateTime: '2026-01-14 10:16:00' },
+      { id: '3', fileName: '视频1.mp4', platformName: '快手', accountName: '快手1账号', status: '发布失败', createTime: '2026-01-14 10:30:00', updateTime: '2026-01-14 10:32:00' },
+      { id: '4', fileName: '视频2.mp4', platformName: '抖音', accountName: '抖音1账号', status: '待发布', createTime: '2026-01-14 11:00:00', updateTime: '2026-01-14 11:00:00' },
+      { id: '5', fileName: '视频2.mp4', platformName: '抖音', accountName: '抖音2账号', status: '待发布', createTime: '2026-01-14 11:15:00', updateTime: '2026-01-14 11:15:00' },
+      { id: '6', fileName: '视频2.mp4', platformName: '快手', accountName: '快手1账号', status: '发布成功', createTime: '2026-01-14 11:30:00', updateTime: '2026-01-14 11:35:00' }
     ]
   }
 }
@@ -432,24 +374,14 @@ const getPlatformTagType = (platform) => {
   return typeMap[platform] || 'default'
 }
 
-// 根据状态获取标签类型
-const getStatusTagType = (status) => {
-  const typeMap = {
-    '已完成': 'success',
-    '进行中': 'warning',
-    '待执行': 'info',
-    '已失败': 'danger'
-  }
-  return typeMap[status] || 'info'
-}
-
 // 根据发布状态获取标签类型
 const getPublishStatusTagType = (status) => {
   const typeMap = {
     '发布成功': 'success',
     '发布中': 'warning',
     '待发布': 'info',
-    '发布失败': 'danger'
+    '发布失败': 'danger',
+    '已取消': 'default'
   }
   return typeMap[status] || 'info'
 }
@@ -457,66 +389,6 @@ const getPublishStatusTagType = (status) => {
 // 导航到指定路由
 const navigateTo = (path) => {
   router.push(path)
-}
-
-// 查看任务详情
-const viewTaskDetail = (task) => {
-  ElMessage.info(`查看任务: ${task.title}`)
-  // 实际应用中应该跳转到任务详情页面
-}
-
-// 执行任务
-const executeTask = (task) => {
-  ElMessageBox.confirm(
-    `确定要执行任务 ${task.title} 吗？`,
-    '提示',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'info',
-    }
-  )
-    .then(() => {
-      // 更新任务状态
-      const index = recentTasks.value.findIndex(t => t.id === task.id)
-      if (index !== -1) {
-        recentTasks.value[index].status = '进行中'
-      }
-      ElMessage({
-        type: 'success',
-        message: '任务已开始执行',
-      })
-    })
-    .catch(() => {
-      // 取消执行
-    })
-}
-
-// 取消任务
-const cancelTask = (task) => {
-  ElMessageBox.confirm(
-    `确定要取消任务 ${task.title} 吗？`,
-    '警告',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    }
-  )
-    .then(() => {
-      // 更新任务状态
-      const index = recentTasks.value.findIndex(t => t.id === task.id)
-      if (index !== -1) {
-        recentTasks.value[index].status = '已取消'
-      }
-      ElMessage({
-        type: 'success',
-        message: '任务已取消',
-      })
-    })
-    .catch(() => {
-      // 取消操作
-    })
 }
 
 // 查看发布任务详情
@@ -541,6 +413,7 @@ const retryPublishTask = (task) => {
       const index = publishTaskRecords.value.findIndex(t => t.id === task.id)
       if (index !== -1) {
         publishTaskRecords.value[index].status = '发布中'
+        publishTaskRecords.value[index].updateTime = new Date().toLocaleString()
       }
       ElMessage({
         type: 'success',
@@ -568,6 +441,7 @@ const cancelPublishTask = (task) => {
       const index = publishTaskRecords.value.findIndex(t => t.id === task.id)
       if (index !== -1) {
         publishTaskRecords.value[index].status = '已取消'
+        publishTaskRecords.value[index].updateTime = new Date().toLocaleString()
       }
       ElMessage({
         type: 'success',
@@ -783,7 +657,7 @@ const cancelPublishTask = (task) => {
       }
     }
     
-    .recent-tasks {
+    .publish-task-records {
       margin-top: 30px;
       
       .section-header {
