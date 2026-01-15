@@ -1395,23 +1395,29 @@ async def get_platform_homepage():
         # 使用playwright携带cookie访问个人中心
         from playwright.async_api import async_playwright
 
-        async with async_playwright() as p:
-            # 启动浏览器
-            browser = await p.chromium.launch(
-                headless=False,
-                executable_path=LOCAL_CHROME_PATH
-            )
-            
-            # 创建上下文并加载cookie
-            context = await browser.new_context(storage_state=str(cookie_file_path))
-            
-            # 创建新页面并访问个人中心
-            page = await context.new_page()
-            await page.goto(personal_url, wait_until='domcontentloaded', timeout=30000)
-            
-            # 获取页面标题和截图（可选）
-            page_title = await page.title()
-            print(f"页面标题: {page_title}")
+        # 初始化playwright实例
+        p = await async_playwright().start()
+        
+        # 启动浏览器
+        browser = await p.chromium.launch(
+            headless=False,
+            executable_path=LOCAL_CHROME_PATH
+        )
+        
+        # 创建上下文并加载cookie
+        context = await browser.new_context(storage_state=str(cookie_file_path))
+        
+        # 创建新页面并访问个人中心
+        page = await context.new_page()
+        await page.goto(personal_url, wait_until='domcontentloaded', timeout=30000)
+        
+        # 获取页面标题
+        page_title = await page.title()
+        print(f"页面标题: {page_title}")
+        
+        # 不关闭浏览器，等待用户主动关闭
+        # 注意：这里不会自动关闭浏览器和playwright实例，需要用户手动关闭浏览器窗口
+        # 浏览器关闭后，playwright实例会自动清理
 
 
 
