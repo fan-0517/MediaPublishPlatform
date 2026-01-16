@@ -65,20 +65,20 @@ async def check_cookie_generic(type, file_path):
                 return False
 
             # 根据不同平台的特征元素进行检查
-            # 2.检查页面内容是否包含登录相关的文本（douyin和tiktok特征，就算没登录也可以到个人中心url）
-            if platform_name in ["douyin", "tiktok"]:
-                try:
-                    content = await page.content()
-                    # 检查是否包含登录按钮或登录提示
-                    login_texts = ["登录", "Sign in", "Log in", "登录/注册", "扫码登录"]
-                    for text in login_texts:
-                        if text in content:
-                            logger.error(f"[{platform_name}] 页面包含登录文本: {text}")
-                            await context.close()
-                            await browser.close()
-                            return False
-                except Exception as e:
-                    logger.warning(f"[{platform_name}] 读取页面内容失败: {str(e)}")
+#             # 2.检查页面内容是否包含登录相关的文本（douyin特征，就算没登录也可以到个人中心url）
+#             if platform_name in ["douyin"]:
+#                 try:
+#                     content = await page.content()
+#                     # 检查是否包含登录按钮或登录提示
+#                     login_texts = ["登录", "Sign in", "Log in", "登录/注册", "扫码登录"]
+#                     for text in login_texts:
+#                         if text in content:
+#                             logger.error(f"[{platform_name}] 页面包含登录文本: {text}")
+#                             await context.close()
+#                             await browser.close()
+#                             return False
+#                 except Exception as e:
+#                     logger.warning(f"[{platform_name}] 读取页面内容失败: {str(e)}")
 
             # 检查是否成功加载个人中心页面的特征元素
 
