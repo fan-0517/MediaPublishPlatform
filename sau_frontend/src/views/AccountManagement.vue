@@ -60,7 +60,7 @@
                     </el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column label="操作">
+                <el-table-column label="操作" min-width="350">
                   <template #default="scope">
                     <div class="action-buttons">
                       <el-button size="small" @click="handleEdit(scope.row)">编辑</el-button>
@@ -135,7 +135,7 @@
                     </el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column label="操作">
+                <el-table-column label="操作" min-width="250">
                   <template #default="scope">
                     <div class="action-buttons">
                       <el-button size="small" @click="handleEdit(scope.row)">编辑</el-button>
@@ -209,7 +209,7 @@
                     </el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column label="操作">
+                <el-table-column label="操作" min-width="250">
                   <template #default="scope">
                     <div class="action-buttons">
                       <el-button size="small" @click="handleEdit(scope.row)">编辑</el-button>
@@ -1522,9 +1522,10 @@ onBeforeUnmount(() => {
     display: flex;
     gap: 8px;
     align-items: center;
+    flex-wrap: wrap;
     
     .el-button {
-      flex-shrink: 0;
+      flex-shrink: 1;
     }
   }
   
