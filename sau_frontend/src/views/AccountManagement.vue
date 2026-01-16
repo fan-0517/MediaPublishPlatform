@@ -67,8 +67,8 @@
                       <el-button size="small" type="primary" :icon="Download" @click="handleDownloadCookie(scope.row)">下载Cookie</el-button>
                       <el-button size="small" type="info" :icon="Upload" @click="handleUploadCookie(scope.row)">上传Cookie</el-button>
                       <el-button size="small" type="success" @click="handleVisitHomepage(scope.row)">访问主页</el-button>
-                      <el-button v-if="scope.row.status === '异常'" size="small" type="warning" @click="handleReLogin(scope.row)">重新登录</el-button>
                       <el-button size="small" type="danger" @click="handleDelete(scope.row)">删除</el-button>
+                      <el-button v-if="scope.row.status === '异常'" size="small" type="warning" @click="handleReLogin(scope.row)">重新登录</el-button>
                     </div>
                   </template>
                 </el-table-column>
@@ -141,8 +141,8 @@
                       <el-button size="small" @click="handleEdit(scope.row)">编辑</el-button>
                       <el-button size="small" type="primary" :icon="Download" @click="handleDownloadCookie(scope.row)">下载Cookie</el-button>
                       <el-button size="small" type="info" :icon="Upload" @click="handleUploadCookie(scope.row)">上传Cookie</el-button>
-                      <el-button v-if="scope.row.status === '异常'" size="small" type="warning" @click="handleReLogin(scope.row)">重新登录</el-button>
                       <el-button size="small" type="danger" @click="handleDelete(scope.row)">删除</el-button>
+                      <el-button v-if="scope.row.status === '异常'" size="small" type="warning" @click="handleReLogin(scope.row)">重新登录</el-button>
                     </div>
                   </template>
                 </el-table-column>
