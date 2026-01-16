@@ -188,7 +188,7 @@ PLATFORM_CONFIGS = {
     "tiktok": {
         "type": 5,
         "platform_name": "tiktok",
-        "personal_url": "https://www.tiktok.com/",
+        "personal_url": "https://www.tiktok.com/setting",
         "login_url": "https://www.tiktok.com/login?lang=en",
         "creator_video_url": "https://www.tiktok.com/tiktokstudio/upload?lang=en",
         "creator_image_url": "https://www.tiktok.com/tiktokstudio/upload?lang=en",
@@ -209,7 +209,7 @@ PLATFORM_CONFIGS = {
         "features": {
             # 平台功能支持
             #是否跳过Cookie验证
-            "skip_cookie_verify": True,
+            "skip_cookie_verify": False,
             #是否支持图文发布
             "image_publish": False,
             #是否支持标题
@@ -287,7 +287,7 @@ PLATFORM_CONFIGS = {
             "upload_button": ['div[aria-label="照片/视频"]','div[aria-label="Photo/Video"]'],
             "publish_button": ['//span[text()="发帖"]','//span[text()="Post"]','//span[text()="Schedule"]','//span[text()="发布"]'],
             #标题编辑器选择器
-            "title_editor": [          
+            "title_editor": [
                 # 中文界面选择器
                 '[contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
                 '[aria-placeholder*="分享你的新鲜事"][contenteditable="true"]',

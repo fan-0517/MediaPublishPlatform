@@ -55,7 +55,7 @@ async def check_cookie_generic(type, file_path):
             #logger.info(f"[+]Current URL: {current_url}")
 
             # 1.检查url是否包含登录相关的关键词
-            login_keywords = ["login", "signin", "auth", "登录", "登录页", "登录页面"]
+            login_keywords = ["login", "signin", "auth", "登录", "登录页", "登录页面", "foryou"]
             is_login_page = any(keyword in current_url.lower() for keyword in login_keywords)
 
             if is_login_page:
