@@ -1633,15 +1633,47 @@ def post_videos_to_multiple_platforms():
             start_days=start_days
         )
         
+        # 更新发布任务记录状态
+        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            cursor = conn.cursor()
+            
+            # 遍历每个平台的发布结果，更新对应的任务记录状态
+            for platform, platform_result in result.items():
+                if platform_result and "success" in platform_result:
+                    # 根据发布结果更新状态
+                    # 这里简化处理：如果该平台有成功发布的文件，则将该平台的所有任务记录标记为发布成功
+                    # 否则标记为发布失败
+                    status = '发布成功' if platform_result["success"] > 0 else '发布失败'
+                    cursor.execute('''
+                        UPDATE publish_task_records 
+                        SET status = ?, update_time = CURRENT_TIMESTAMP 
+                        WHERE task_id = ? AND platform_name = ?
+                    ''', [status, task_id, platform])
+            
+            conn.commit()
+        
         # 返回响应给客户端
         return jsonify({
             "code": 200,
-            "msg": "发布任务已启动",
+            "msg": "发布任务已完成",
             "data": result
         }), 200
         
     except Exception as e:
         print(f"发布视频到多个平台时出错: {str(e)}")
+        
+        # 更新发布任务记录状态为发布失败，并添加错误信息
+        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                UPDATE publish_task_records 
+                SET status = ?, error_msg = ?, update_time = CURRENT_TIMESTAMP 
+                WHERE task_id = ?
+            ''', ['发布失败', str(e), task_id])
+            
+            conn.commit()
+            
         return jsonify({
             "code": 500,
             "msg": f"发布视频到多个平台失败: {str(e)}",
