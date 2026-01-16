@@ -92,6 +92,13 @@
             <el-button size="small" @click="viewTaskDetail(scope.row)">查看详情</el-button>
             <el-button 
               size="small" 
+              type="warning" 
+              @click="deletePublishTask(scope.row)"
+            >
+              删除
+            </el-button>
+            <el-button 
+              size="small" 
               type="primary" 
               v-if="scope.row.status === '发布失败'"
               @click="retryPublishTask(scope.row)"
@@ -105,13 +112,6 @@
               @click="cancelPublishTask(scope.row)"
             >
               取消
-            </el-button>
-            <el-button 
-              size="small" 
-              type="warning" 
-              @click="deletePublishTask(scope.row)"
-            >
-              删除
             </el-button>
           </template>
         </el-table-column>
@@ -285,17 +285,34 @@ const retryPublishTask = (task) => {
       type: 'info',
     }
   )
-    .then(() => {
-      // 更新任务状态
-      const index = publishTaskRecords.value.findIndex(t => t.id === task.id)
-      if (index !== -1) {
-        publishTaskRecords.value[index].status = '发布中'
-        publishTaskRecords.value[index].updateTime = new Date().toLocaleString()
+    .then(async () => {
+      try {
+        // 调用后端API重试发布任务
+        const response = await publishApi.retryPublishTask(task.id)
+        if (response.code === 200) {
+          // 更新任务状态
+          const index = publishTaskRecords.value.findIndex(t => t.id === task.id)
+          if (index !== -1) {
+            publishTaskRecords.value[index].status = '发布中'
+            publishTaskRecords.value[index].updateTime = new Date().toLocaleString()
+          }
+          ElMessage({
+            type: 'success',
+            message: '发布任务已开始重试',
+          })
+        } else {
+          ElMessage({
+            type: 'error',
+            message: response.msg || '重试发布任务失败',
+          })
+        }
+      } catch (error) {
+        console.error('重试发布任务失败:', error)
+        ElMessage({
+          type: 'error',
+          message: '重试发布任务失败',
+        })
       }
-      ElMessage({
-        type: 'success',
-        message: '发布任务已开始重试',
-      })
     })
     .catch(() => {
       // 取消操作

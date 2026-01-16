@@ -35,5 +35,10 @@ export const publishApi = {
   // 获取发布任务记录
   getPublishTaskRecords(params) {
     return http.get('/getPublishTaskRecords', params)
+  },
+  
+  // 重试发布任务
+  retryPublishTask(taskId) {
+    return http.post('/retryPublishTask', { id: taskId })
   }
 }
