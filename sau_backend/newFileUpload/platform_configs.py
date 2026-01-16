@@ -229,14 +229,19 @@ PLATFORM_CONFIGS = {
     "instagram": {
         "type": 6,
         "platform_name": "instagram",
-        "personal_url": "https://www.instagram.com/me/",
+        "personal_url": "https://www.instagram.com",
         "login_url": "https://www.instagram.com/accounts/login/",
-        "creator_video_url": "https://business.facebook.com/latest/composer",
-        "creator_image_url": "https://business.facebook.com/latest/composer",
+        "creator_video_url": "https://business.facebook.com/latest/composer/",
+        "creator_image_url": "https://business.facebook.com/latest/composer/",
         "selectors": {
-            "upload_button": ['div[role="button"]:has-text("Add photo/video")'],
+            "upload_button": [
+                'div[role="button"]:has-text("Add photo/video")',
+                '#mount_0_0_1o > div > div:nth-child(1) > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div > div.x78zum5.xdt5ytf.x10cihs4.x1t2pt76.x1n2onr6.x1ja2u2z > span > div > div > div._6g3g.x1ja2u2z.xeuugli.xh8yej3.x1q85c4o.x1kgee58 > div.x2atdfe.xb57i2i.x1q594ok.x5lxg6s.x78zum5.xdt5ytf.x1n2onr6.x1ja2u2z.xw2csxc.x7p5m3t.x1odjw0f.x1e4zzel.x5yr21d > div > div:nth-child(2) > div > div:nth-child(1) > div > div > div > div > div > div:nth-child(2) > div > div > div.x78zum5.xdt5ytf.x2lwn1j.xeuugli.x1c4vz4f.x2lah0s.x1g14t1j > div.x78zum5.xdt5ytf.x2lwn1j.xeuugli.x14rvwrp.x1nn3v0j.x18d9i69.xyiysdx.xv54qhq.x1odjw0f.x6ikm8r.x5yr21d > div:nth-child(2) > div > div.x9f619.x78zum5.x1iyjqo2.x5yr21d.x2lwn1j.x1n2onr6.xh8yej3 > div.xw2csxc.x1odjw0f.xh8yej3.x18d9i69 > div.x1iyjqo2.xs83m0k.xdl72j9.x3igimt.xedcshv.x1t2pt76.x1l90r2v.xf7dkkf.xv54qhq.xexx8yu > div.x6s0dn4.x78zum5.x1q0g3np.x1a02dak.x2lwn1j.xeuugli.x1iyjqo2.xbiq8gi > div > div > div > div > span > div > div > div.x1vvvo52.x1fvot60.xk50ysn.xxio538.x1heor9g.xuxw1ft.x6ikm8r.x10wlt62.xlyipyv.x1h4wwuj.xeuugli'
+            ],
             "publish_button": ['*[role="button"]:has(:text("Publish"))'],
-            "title_editor": ['div[role="combobox"][contenteditable="true"][aria-label*="Write into the dialogue box"]'],
+            "title_editor": [
+                'div[role="combobox"][contenteditable="true"][aria-label*="Write into the dialogue box"]'
+                ],
             #正文编辑器输入框选择器
             "textbox_selectors": [
                 'div.tiptap.ProseMirror[contenteditable="true"][role="textbox"]'
@@ -254,7 +259,7 @@ PLATFORM_CONFIGS = {
             #是否支持图文发布
             "image_publish": True,
             #是否支持标题
-            "title": True,
+            "title": False,
             #是否支持正文
             "textbox": True,
             #是否支持标签

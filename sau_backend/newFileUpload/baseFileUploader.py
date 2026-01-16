@@ -208,6 +208,34 @@ class BaseFileUploader(object):
                 await page.goto(self.creator_video_url, wait_until='domcontentloaded', timeout=self.page_load_timeout)
             await asyncio.sleep(2)
             self.logger.info(f"step3: {self.platform_name}页面加载完成")
+            # instagram平台需要先点击ins登录按钮
+            if self.platform_name == "instagram":
+                # 检查是否需要登录
+                current_url = page.url
+                self.logger.info(f"[+]Current URL: {current_url}")
+                
+                # 如果跳转到登录页面，尝试点击Instagram登录按钮
+                if "loginpage" in current_url or "login" in current_url:
+                    self.logger.info("[+]检测到登录页面，尝试点击Instagram登录按钮")
+                    try:
+                        # 尝试查找并点击Instagram登录按钮
+                        login_buttons = [
+                            'div[role="button"]:has-text("使用 Instagram 登录")',
+                            'div[role="button"]:has-text("Log in with Instagram")',
+                            'button:has-text("使用 Instagram 登录")',
+                            'button:has-text("Log in with Instagram")'
+                        ]
+                        login_button = await self.find_button(login_buttons)
+                        if not login_button:
+                            raise Exception("未找到Instagram登录按钮")
+                        await login_button.wait_for(state='visible', timeout=5000)
+                        self.logger.info(f"  [-] 将点击登录按钮: {await login_button.text_content()}")
+                        await login_button.click()
+                        await asyncio.sleep(5)
+                        await page.goto(self.creator_video_url, wait_until='domcontentloaded', timeout=self.page_load_timeout)
+                    except Exception as e:
+                        self.logger.error(f"[+]点击Instagram登录按钮失败: {str(e)}")
+                        
             
             # step4.选择基础定位器
             await self.choose_base_locator(page)
