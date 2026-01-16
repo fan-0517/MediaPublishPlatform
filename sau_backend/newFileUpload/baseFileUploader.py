@@ -379,6 +379,7 @@ class BaseFileUploader(object):
         try:
             # 使用find_button方法查找上传按钮，支持中文和英文界面
             await asyncio.sleep(self.check_interval)
+            await asyncio.sleep(5)
             upload_button = await self.find_button(self.upload_button_selectors)
             if not upload_button:
                 raise Exception("未找到上传图文/视频按钮")
