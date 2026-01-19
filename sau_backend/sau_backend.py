@@ -45,6 +45,7 @@ def vite_svg():
 def index():  # put application's code here
     return send_from_directory(current_dir, 'index.html')
 
+###################################################文件管理（媒体素材和账号cookie）#############################################
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -190,7 +191,265 @@ def get_all_files():
             "data": None
         }), 500
 
+@app.route('/deleteFile', methods=['GET'])
+def delete_file():
+    file_id = request.args.get('id')
 
+    if not file_id or not file_id.isdigit():
+        return jsonify({
+            "code": 400,
+            "msg": "Invalid or missing file ID",
+            "data": None
+        }), 400
+
+    try:
+        # 获取数据库连接
+        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            # 查询要删除的记录
+            cursor.execute("SELECT * FROM file_records WHERE id = ?", (file_id,))
+            record = cursor.fetchone()
+
+            if not record:
+                return jsonify({
+                    "code": 404,
+                    "msg": "File not found",
+                    "data": None
+                }), 404
+
+            record = dict(record)
+
+            # 获取文件路径并删除实际文件
+            file_path = Path(BASE_DIR / "videoFile" / record['file_path'])
+            if file_path.exists():
+                try:
+                    file_path.unlink()  # 删除文件
+                    print(f"✅ 实际文件已删除: {file_path}")
+                except Exception as e:
+                    print(f"⚠️ 删除实际文件失败: {e}")
+                    # 即使删除文件失败，也要继续删除数据库记录，避免数据不一致
+            else:
+                print(f"⚠️ 实际文件不存在: {file_path}")
+
+            # 删除数据库记录
+            cursor.execute("DELETE FROM file_records WHERE id = ?", (file_id,))
+            conn.commit()
+
+        return jsonify({
+            "code": 200,
+            "msg": "File deleted successfully",
+            "data": {
+                "id": record['id'],
+                "filename": record['filename']
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "code": 500,
+            "msg": str("delete failed!"),
+            "data": None
+        }), 500
+
+
+# 统计数据API：获取文件统计
+@app.route('/getFileStats', methods=['GET'])
+def get_file_stats():
+    try:
+        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            # 获取文件大小统计
+            cursor.execute('''
+                SELECT
+                    COUNT(*) as total_files,
+                    SUM(filesize) as total_size,
+                    AVG(filesize) as avg_size,
+                    MAX(filesize) as max_size
+                FROM file_records
+            ''')
+            size_stats = cursor.fetchone()
+
+            # 获取最近上传的文件
+            cursor.execute('''
+                SELECT * FROM file_records
+                ORDER BY id DESC
+                LIMIT 10
+            ''')
+            recent_files = [dict(row) for row in cursor.fetchall()]
+
+            return jsonify({
+                "code": 200,
+                "msg": "success",
+                "data": {
+                    "size_stats": {
+                        "total_files": size_stats['total_files'],
+                        "total_size_mb": round(float(size_stats['total_size']), 2),
+                        "avg_size_mb": round(float(size_stats['avg_size']), 2),
+                        "max_size_mb": round(float(size_stats['max_size']), 2)
+                    },
+                    "recent_files": recent_files
+                }
+            }), 200
+    except Exception as e:
+        print(f"获取文件统计数据失败: {str(e)}")
+        return jsonify({
+            "code": 500,
+            "msg": f"获取文件统计数据失败: {str(e)}",
+            "data": None
+        }), 500
+
+# 统计数据API：获取平台账号统计
+@app.route('/getPlatformStats', methods=['GET'])
+def get_platform_stats():
+    try:
+        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            # 获取各平台账号数量统计
+            cursor.execute('''
+                SELECT type, COUNT(*) as count, SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as valid_count
+                FROM user_info
+                GROUP BY type
+            ''')
+            platform_stats = []
+            for row in cursor.fetchall():
+                platform_stats.append({
+                    "platform": row['type'],
+                    "total": row['count'],
+                    "valid": row['valid_count']
+                })
+
+            # 获取总体统计
+            cursor.execute('''
+                SELECT COUNT(*) as total_accounts,
+                       SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as valid_accounts,
+                       (SELECT COUNT(*) FROM file_records) as total_files
+                FROM user_info
+            ''')
+            overall_stats = cursor.fetchone()
+
+            return jsonify({
+                "code": 200,
+                "msg": "success",
+                "data": {
+                    "platform_stats": platform_stats,
+                    "overall": {
+                        "total_accounts": overall_stats['total_accounts'],
+                        "valid_accounts": overall_stats['valid_accounts'],
+                        "total_files": overall_stats['total_files']
+                    }
+                }
+            }), 200
+    except Exception as e:
+        print(f"获取统计数据失败: {str(e)}")
+        return jsonify({
+            "code": 500,
+            "msg": f"获取统计数据失败: {str(e)}",
+            "data": None
+        }), 500
+
+
+
+###################################################账号管理#############################################
+# 统一登录接口
+@app.route('/login')
+def login_unified():
+    """
+    统一登录接口，支持所有平台的登录
+    参数：
+        type: 平台类型编号
+        id: 账号名
+    返回：
+        SSE 流，返回登录状态
+    """
+    type = request.args.get('type')
+    # 账号名
+    id = request.args.get('id')
+
+    #如果账号名已存在，查找原有账户的id，并删除原有记录
+    with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute('SELECT id FROM user_info WHERE userName = ? AND type = ?', (id, type))
+        row = cursor.fetchone()
+        if row:
+            account_id = row['id']
+            # 删除数据库中的原账号
+            print(f"删除原账号ID: {account_id}")
+            delete_account(account_id)
+
+    # 模拟一个用于异步通信的队列
+    status_queue = Queue()
+    active_queues[id] = status_queue
+
+    def on_close():
+        print(f"清理队列: {id}")
+        del active_queues[id]
+
+    # 启动异步任务线程
+    thread = threading.Thread(target=run_unified_login, args=(type, id, status_queue), daemon=True)
+    thread.start()
+
+    response = Response(sse_stream(status_queue,), mimetype='text/event-stream')
+    response.headers['Cache-Control'] = 'no-cache'
+    response.headers['X-Accel-Buffering'] = 'no'  # 关键：禁用 Nginx 缓冲
+    response.headers['Content-Type'] = 'text/event-stream'
+    response.headers['Connection'] = 'keep-alive'
+    return response
+
+# SSE 流生成器函数
+def sse_stream(status_queue):
+    while True:
+        if not status_queue.empty():
+            msg = status_queue.get()
+            yield f"data: {msg}\n\n"
+        else:
+            # 避免 CPU 占满
+            time.sleep(0.1)
+
+@app.route('/updateUserinfo', methods=['POST'])
+def updateUserinfo():
+    # 获取JSON数据
+    data = request.get_json()
+
+    # 从JSON数据中提取 type 和 userName
+    user_id = data.get('id')
+    type = data.get('type')
+    userName = data.get('userName')
+    try:
+        # 获取数据库连接
+        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            # 更新数据库记录
+            cursor.execute('''
+                           UPDATE user_info
+                           SET type     = ?,
+                               userName = ?
+                           WHERE id = ?;
+                           ''', (type, userName, user_id))
+            conn.commit()
+
+        return jsonify({
+            "code": 200,
+            "msg": "account update successfully",
+            "data": None
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "code": 500,
+            "msg": str("update failed!"),
+            "data": None
+        }), 500
+
+# 获取所有账号信息
 @app.route("/getAccounts", methods=['GET'])
 def getAccounts():
     """快速获取所有账号信息，不进行cookie验证"""
@@ -221,7 +480,7 @@ def getAccounts():
             "data": None
         }), 500
 
-
+# 验证所有账号实时状态
 @app.route("/getValidAccounts",methods=['GET'])
 async def getValidAccounts():
     try:
@@ -330,69 +589,232 @@ async def getValidAccounts():
                         "msg": f"获取有效账号列表失败: {str(e)}",
                         "data": None
                     }), 500
-
-@app.route('/deleteFile', methods=['GET'])
-def delete_file():
-    file_id = request.args.get('id')
-
-    if not file_id or not file_id.isdigit():
-        return jsonify({
-            "code": 400,
-            "msg": "Invalid or missing file ID",
-            "data": None
-        }), 400
-
+# Cookie文件上传API
+@app.route('/uploadCookie', methods=['POST'])
+def upload_cookie():
     try:
-        # 获取数据库连接
+        if 'file' not in request.files:
+            return jsonify({
+                "code": 500,
+                "msg": "没有找到Cookie文件",
+                "data": None
+            }), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({
+                "code": 500,
+                "msg": "Cookie文件名不能为空",
+                "data": None
+            }), 400
+
+        if not file.filename.endswith('.json'):
+            return jsonify({
+                "code": 500,
+                "msg": "Cookie文件必须是JSON格式",
+                "data": None
+            }), 400
+
+        # 获取账号信息
+        account_id = request.form.get('id')
+        platform = request.form.get('platform')
+
+        if not account_id or not platform:
+            return jsonify({
+                "code": 500,
+                "msg": "缺少账号ID或平台信息",
+                "data": None
+            }), 400
+
+        # 从数据库获取账号的文件路径
         with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
+            cursor.execute('SELECT filePath FROM user_info WHERE id = ?', (account_id,))
+            result = cursor.fetchone()
 
-            # 查询要删除的记录
-            cursor.execute("SELECT * FROM file_records WHERE id = ?", (file_id,))
-            record = cursor.fetchone()
+        if not result:
+            return jsonify({
+                "code": 500,
+                "msg": "账号不存在",
+                "data": None
+            }), 404
 
-            if not record:
-                return jsonify({
-                    "code": 404,
-                    "msg": "File not found",
-                    "data": None
-                }), 404
+        # 保存上传的Cookie文件到对应路径
+        cookie_file_path = Path(BASE_DIR / "cookiesFile" / result['filePath'])
+        cookie_file_path.parent.mkdir(parents=True, exist_ok=True)
 
-            record = dict(record)
+        file.save(str(cookie_file_path))
 
-            # 获取文件路径并删除实际文件
-            file_path = Path(BASE_DIR / "videoFile" / record['file_path'])
-            if file_path.exists():
-                try:
-                    file_path.unlink()  # 删除文件
-                    print(f"✅ 实际文件已删除: {file_path}")
-                except Exception as e:
-                    print(f"⚠️ 删除实际文件失败: {e}")
-                    # 即使删除文件失败，也要继续删除数据库记录，避免数据不一致
-            else:
-                print(f"⚠️ 实际文件不存在: {file_path}")
-
-            # 删除数据库记录
-            cursor.execute("DELETE FROM file_records WHERE id = ?", (file_id,))
-            conn.commit()
+        # 更新数据库中的账号信息（可选，比如更新更新时间）
+        # 这里可以根据需要添加额外的处理逻辑
 
         return jsonify({
             "code": 200,
-            "msg": "File deleted successfully",
+            "msg": "Cookie文件上传成功",
+            "data": None
+        }), 200
+
+    except Exception as e:
+        print(f"上传Cookie文件时出错: {str(e)}")
+        return jsonify({
+            "code": 500,
+            "msg": f"上传Cookie文件失败: {str(e)}",
+            "data": None
+        }), 500
+
+
+# Cookie文件下载API
+@app.route('/downloadCookie', methods=['GET'])
+def download_cookie():
+    try:
+        file_path = request.args.get('filePath')
+        if not file_path:
+            return jsonify({
+                "code": 500,
+                "msg": "缺少文件路径参数",
+                "data": None
+            }), 400
+
+        # 验证文件路径的安全性，防止路径遍历攻击
+        cookie_file_path = Path(BASE_DIR / "cookiesFile" / file_path).resolve()
+        base_path = Path(BASE_DIR / "cookiesFile").resolve()
+
+        if not cookie_file_path.is_relative_to(base_path):
+            return jsonify({
+                "code": 500,
+                "msg": "非法文件路径",
+                "data": None
+            }), 400
+
+        if not cookie_file_path.exists():
+            return jsonify({
+                "code": 500,
+                "msg": "Cookie文件不存在",
+                "data": None
+            }), 404
+
+        # 返回文件
+        return send_from_directory(
+            directory=str(cookie_file_path.parent),
+            path=cookie_file_path.name,
+            as_attachment=True
+        )
+
+    except Exception as e:
+        print(f"下载Cookie文件时出错: {str(e)}")
+        return jsonify({
+            "code": 500,
+            "msg": f"下载Cookie文件失败: {str(e)}",
+            "data": None
+        }), 500
+
+
+# 访问平台个人中心API
+@app.route('/getPlatformHomepage', methods=['GET'])
+async def get_platform_homepage():
+    try:
+        # 获取账号ID
+        account_id = request.args.get('id')
+        if not account_id:
+            return jsonify({
+                "code": 400,
+                "msg": "缺少账号ID参数",
+                "data": None
+            }), 400
+
+        # 从数据库获取账号信息
+        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute('SELECT filePath, type FROM user_info WHERE id = ?', (account_id,))
+            result = cursor.fetchone()
+
+        if not result:
+            return jsonify({
+                "code": 404,
+                "msg": "账号不存在",
+                "data": None
+            }), 404
+
+        file_path = result['filePath']
+        platform_type = result['type']
+
+        # 验证cookie文件是否存在
+        cookie_file_path = Path(BASE_DIR / "cookiesFile" / file_path)
+        if not cookie_file_path.exists():
+            return jsonify({
+                "code": 400,
+                "msg": "Cookie文件不存在",
+                "data": None
+            }), 400
+
+        # 获取平台配置
+        platform_key = get_platform_key_by_type(platform_type)
+        if not platform_key or platform_key not in PLATFORM_CONFIGS:
+            return jsonify({
+                "code": 400,
+                "msg": "平台配置不存在",
+                "data": None
+            }), 400
+
+        platform_config = PLATFORM_CONFIGS[platform_key]
+        personal_url = platform_config.get('personal_url')
+        if not personal_url:
+            return jsonify({
+                "code": 400,
+                "msg": "平台个人中心URL未配置",
+                "data": None
+            }), 400
+
+        # 使用playwright携带cookie访问个人中心
+        from playwright.async_api import async_playwright
+
+        # 初始化playwright实例
+        p = await async_playwright().start()
+
+        # 启动浏览器
+        browser = await p.chromium.launch(
+            headless=False,
+            executable_path=LOCAL_CHROME_PATH
+        )
+
+        # 创建上下文并加载cookie
+        context = await browser.new_context(storage_state=str(cookie_file_path))
+
+        # 创建新页面并访问个人中心
+        page = await context.new_page()
+        await page.goto(personal_url, wait_until='domcontentloaded', timeout=30000)
+
+        # 获取页面标题
+        page_title = await page.title()
+        print(f"页面标题: {page_title}")
+
+        # 不关闭浏览器，等待用户主动关闭
+        # 注意：这里不会自动关闭浏览器和playwright实例，需要用户手动关闭浏览器窗口
+        # 浏览器关闭后，playwright实例会自动清理
+
+
+
+        return jsonify({
+            "code": 200,
+            "msg": "访问成功",
             "data": {
-                "id": record['id'],
-                "filename": record['filename']
+                "platform": platform_key,
+                "personal_url": personal_url,
+                "page_title": page_title
             }
         }), 200
 
     except Exception as e:
+        print(f"访问平台个人中心失败: {str(e)}")
         return jsonify({
             "code": 500,
-            "msg": str("delete failed!"),
+            "msg": f"访问平台个人中心失败: {str(e)}",
             "data": None
         }), 500
 
+# 删除账号API
 @app.route('/deleteAccount', methods=['GET'])
 def delete_account_route():
     account_id = int(request.args.get('id'))
@@ -408,189 +830,7 @@ def delete_account_route():
     else:
         return jsonify(result), 500
 
-# 统计数据API：获取平台账号统计
-@app.route('/getPlatformStats', methods=['GET'])
-def get_platform_stats():
-    try:
-        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            
-            # 获取各平台账号数量统计
-            cursor.execute('''
-                SELECT type, COUNT(*) as count, SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as valid_count
-                FROM user_info
-                GROUP BY type
-            ''')
-            platform_stats = []
-            for row in cursor.fetchall():
-                platform_stats.append({
-                    "platform": row['type'],
-                    "total": row['count'],
-                    "valid": row['valid_count']
-                })
-            
-            # 获取总体统计
-            cursor.execute('''
-                SELECT COUNT(*) as total_accounts, 
-                       SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as valid_accounts,
-                       (SELECT COUNT(*) FROM file_records) as total_files
-                FROM user_info
-            ''')
-            overall_stats = cursor.fetchone()
-            
-            return jsonify({
-                "code": 200,
-                "msg": "success",
-                "data": {
-                    "platform_stats": platform_stats,
-                    "overall": {
-                        "total_accounts": overall_stats['total_accounts'],
-                        "valid_accounts": overall_stats['valid_accounts'],
-                        "total_files": overall_stats['total_files']
-                    }
-                }
-            }), 200
-    except Exception as e:
-        print(f"获取统计数据失败: {str(e)}")
-        return jsonify({
-            "code": 500,
-            "msg": f"获取统计数据失败: {str(e)}",
-            "data": None
-        }), 500
-
-# 统计数据API：获取文件统计
-@app.route('/getFileStats', methods=['GET'])
-def get_file_stats():
-    try:
-        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            
-            # 获取文件大小统计
-            cursor.execute('''
-                SELECT 
-                    COUNT(*) as total_files,
-                    SUM(filesize) as total_size,
-                    AVG(filesize) as avg_size,
-                    MAX(filesize) as max_size
-                FROM file_records
-            ''')
-            size_stats = cursor.fetchone()
-            
-            # 获取最近上传的文件
-            cursor.execute('''
-                SELECT * FROM file_records
-                ORDER BY id DESC
-                LIMIT 10
-            ''')
-            recent_files = [dict(row) for row in cursor.fetchall()]
-            
-            return jsonify({
-                "code": 200,
-                "msg": "success",
-                "data": {
-                    "size_stats": {
-                        "total_files": size_stats['total_files'],
-                        "total_size_mb": round(float(size_stats['total_size']), 2),
-                        "avg_size_mb": round(float(size_stats['avg_size']), 2),
-                        "max_size_mb": round(float(size_stats['max_size']), 2)
-                    },
-                    "recent_files": recent_files
-                }
-            }), 200
-    except Exception as e:
-        print(f"获取文件统计数据失败: {str(e)}")
-        return jsonify({
-            "code": 500,
-            "msg": f"获取文件统计数据失败: {str(e)}",
-            "data": None
-        }), 500
-
-
-# 统一登录接口
-@app.route('/login')
-def login_unified():
-    """
-    统一登录接口，支持所有平台的登录
-    参数：
-        type: 平台类型编号
-        id: 账号名
-    返回：
-        SSE 流，返回登录状态
-    """
-    type = request.args.get('type')
-    # 账号名
-    id = request.args.get('id')
-    
-    #如果账号名已存在，查找原有账户的id，并删除原有记录
-    with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        cursor.execute('SELECT id FROM user_info WHERE userName = ? AND type = ?', (id, type))
-        row = cursor.fetchone()
-        if row:
-            account_id = row['id']
-            # 删除数据库中的原账号
-            print(f"删除原账号ID: {account_id}")
-            delete_account(account_id)
-
-    # 模拟一个用于异步通信的队列
-    status_queue = Queue()
-    active_queues[id] = status_queue
-
-    def on_close():
-        print(f"清理队列: {id}")
-        del active_queues[id]
-    
-    # 启动异步任务线程
-    thread = threading.Thread(target=run_unified_login, args=(type, id, status_queue), daemon=True)
-    thread.start()
-    
-    response = Response(sse_stream(status_queue,), mimetype='text/event-stream')
-    response.headers['Cache-Control'] = 'no-cache'
-    response.headers['X-Accel-Buffering'] = 'no'  # 关键：禁用 Nginx 缓冲
-    response.headers['Content-Type'] = 'text/event-stream'
-    response.headers['Connection'] = 'keep-alive'
-    return response
-
-
-
-# # SSE 登录接口旧版
-# @app.route('/login_old')
-# def login():
-#     type = request.args.get('type')
-#     # 账号名
-#     id = request.args.get('id')
-#     #如果账号名已存在，查找原有账户的id，并删除原有记录
-#     with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
-#         conn.row_factory = sqlite3.Row
-#         cursor = conn.cursor()
-#         cursor.execute('SELECT id FROM user_info WHERE userName = ? AND type = ?', (id, type))
-#         row = cursor.fetchone()
-#         if row:
-#             account_id = row['id']
-#             # 删除数据库中的原账号
-#             print(f"删除原账号ID: {account_id}")
-#             delete_account(account_id)
-#
-#     # 模拟一个用于异步通信的队列
-#     status_queue = Queue()
-#     active_queues[id] = status_queue
-#
-#     def on_close():
-#         print(f"清理队列: {id}")
-#         del active_queues[id]
-#     # 启动异步任务线程
-#     thread = threading.Thread(target=run_async_function, args=(type,id,status_queue), daemon=True)
-#     thread.start()
-#     response = Response(sse_stream(status_queue,), mimetype='text/event-stream')
-#     response.headers['Cache-Control'] = 'no-cache'
-#     response.headers['X-Accel-Buffering'] = 'no'  # 关键：禁用 Nginx 缓冲
-#     response.headers['Content-Type'] = 'text/event-stream'
-#     response.headers['Connection'] = 'keep-alive'
-#     return response
-
+###################################################发布任务记录管理#############################################
 # 获取发布任务记录
 @app.route('/getPublishTaskRecords', methods=['GET'])
 def get_publish_task_records():
@@ -910,116 +1150,7 @@ def delete_publish_task():
             "data": None
         }), 500
 
-# # 将单个视频发布到指定平台（原版）
-# @app.route('/postVideo1', methods=['POST'])
-# def postVideo1():
-#     """
-#     参数说明：
-#     type: 发布平台类型，1-小红书 2-视频号 3-抖音 4-快手
-#     accountList: 账号列表，每个元素为一个字典，包含账号信息
-#     fileType: 文件类型，默认值为2：1-图文 2-视频
-#     title: 文件标题
-#     text: 文件正文描述
-#     tags: 文件标签，逗号分隔
-#     category: 文件分类，0-无分类 1-美食 2-日常 3-旅行 4-娱乐 5-教育 6-其他
-#     enableTimer: 是否启用定时发布，0-否 1-是
-#     videosPerDay: 每天发布文件数量
-#     dailyTimes: 每天发布时间，逗号分隔，格式为HH:MM
-#     startDays: 开始发布时间，距离当前时间的天数，负数表示之前的时间
-#
-#     """
-#     # 获取JSON数据的POST请求体
-#     data = request.get_json()
-#     type = data.get('type') #发布平台类型，1-小红书 2-视频号 3-抖音 4-快手 5-tiktok 6-instagram 7-facebook
-#     account_list = data.get('accountList', []) #账号列表，每个元素为一个字典，包含账号信息
-#     file_type = data.get('fileType')  #文件类型，默认值为2：1-图文 2-视频
-#     file_list = data.get('fileList', []) #文件列表，每个元素为一个字典，包含文件路径和文件名
-#     title = data.get('title') #文件标题
-#     text = data.get('text') #文件正文描述，默认值为demo
-#     tags = data.get('tags') #文件标签，逗号分隔
-#     category = data.get('category') #文件分类，0-无分类 1-美食 2-日常 3-旅行 4-娱乐 5-教育 6-其他
-#     if category == 0:
-#         category = None
-#     thumbnail_path = data.get('thumbnail', '') #视频缩略图封面路径
-#     productLink = data.get('productLink', '') #商品链接
-#     productTitle = data.get('productTitle', '') #商品标题
-#     is_draft = data.get('isDraft', False)  # 是否保存为草稿
-#     enableTimer = data.get('enableTimer') #是否启用定时发布，0-否 1-是
-#     videos_per_day = data.get('videosPerDay') #每天发布文件数量
-#     daily_times = data.get('dailyTimes') #每天发布时间，逗号分隔，格式为HH:MM
-#     start_days = data.get('startDays') #开始发布时间，距离当前时间的天数，负数表示之前的时间
-#     # 打印获取到的数据（仅作为示例）
-#     print("File List:", file_list)
-#     print("Account List:", account_list)
-#
-#     # 生成唯一任务ID
-#     task_id = str(uuid.uuid4())
-#
-#     # 根据type获取platform
-#     platform = get_platform_key_by_type(type)
-#
-#     # 创建发布任务记录
-#     with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
-#         cursor = conn.cursor()
-#
-#         # 遍历每个账号
-#         for account in account_list:
-#             account_file = account['filePath']
-#             account_name = account['userName']
-#
-#             # 遍历每个文件
-#             for file_info in file_list:
-#                 filename = file_info['fileName']
-#
-#                 # 插入发布任务记录
-#                 cursor.execute('''
-#                     INSERT INTO publish_task_records (
-#                         task_id, filename, account_id, account_name,
-#                         platform_name, platform_type, status
-#                     ) VALUES (?, ?, ?, ?, ?, ?, ?)
-#                 ''', [
-#                     task_id, filename, account_file, account_name,
-#                     platform, type, '待发布'
-#                 ])
-#
-#         conn.commit()
-#
-#     match type:
-#         case 1:
-#             post_video_xhs(account_list, file_type, file_list, title, text, tags, enableTimer, videos_per_day, daily_times,
-#                                start_days)
-#         case 2:
-#             post_video_tencent(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-#                                start_days, is_draft)
-#         case 3:
-#             post_video_DouYin(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-#                       start_days, thumbnail_path, productLink, productTitle)
-#         case 4:
-#             post_video_ks(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-#                       start_days)
-#         case 5:
-#             post_video_TikTok(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-#                       start_days, thumbnail_path)
-#         case 6:
-#             post_video_Instagram(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-#                       start_days, thumbnail_path)
-#         case 7:
-#             post_video_Facebook(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-#                       start_days, thumbnail_path)
-#         case 8:
-#             # Bilibili发布，使用新的post_file函数
-#             post_file("bilibili", account_list, file_type, file_list, title, text, tags, thumbnail_path, 1, enableTimer, videos_per_day, daily_times, start_days)
-#         case 9:
-#             # Baijiahao发布，使用新的post_file函数
-#             post_file("baijiahao", account_list, file_type, file_list, title, text, tags, thumbnail_path, 1, enableTimer, videos_per_day, daily_times, start_days)
-#     # 返回响应给客户端
-#     return jsonify(
-#         {
-#             "code": 200,
-#             "msg": None,
-#             "data": None
-#         }), 200
-
+###################################################发布管理#############################################
 # 将单个或多个视频发布到指定平台
 @app.route('/postVideo', methods=['POST'])
 def postVideo():
@@ -1182,340 +1313,6 @@ def postVideo():
                 "msg": f"发布失败: {str(e)}",
                 "data": None
             }), 500
-
-
-@app.route('/updateUserinfo', methods=['POST'])
-def updateUserinfo():
-    # 获取JSON数据
-    data = request.get_json()
-
-    # 从JSON数据中提取 type 和 userName
-    user_id = data.get('id')
-    type = data.get('type')
-    userName = data.get('userName')
-    try:
-        # 获取数据库连接
-        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-
-            # 更新数据库记录
-            cursor.execute('''
-                           UPDATE user_info
-                           SET type     = ?,
-                               userName = ?
-                           WHERE id = ?;
-                           ''', (type, userName, user_id))
-            conn.commit()
-
-        return jsonify({
-            "code": 200,
-            "msg": "account update successfully",
-            "data": None
-        }), 200
-
-    except Exception as e:
-        return jsonify({
-            "code": 500,
-            "msg": str("update failed!"),
-            "data": None
-        }), 500
-
-
-# # 将多个视频批量发布到同一个平台（原版）
-# @app.route('/postVideoBatch', methods=['POST'])
-# def postVideoBatch():
-#     data_list = request.get_json()
-#
-#     if not isinstance(data_list, list):
-#         return jsonify({"error": "Expected a JSON array"}), 400
-#     for data in data_list:
-#         # 从JSON数据中提取fileList和accountList
-#         file_list = data.get('fileList', [])
-#         account_list = data.get('accountList', [])
-#         type = data.get('type')
-#         title = data.get('title')
-#         tags = data.get('tags')
-#         category = data.get('category')
-#         enableTimer = data.get('enableTimer')
-#         if category == 0:
-#             category = None
-#         productLink = data.get('productLink', '')
-#         productTitle = data.get('productTitle', '')
-#
-#         videos_per_day = data.get('videosPerDay')
-#         daily_times = data.get('dailyTimes')
-#         start_days = data.get('startDays')
-#         # 打印获取到的数据（仅作为示例）
-#         print("File List:", file_list)
-#         print("Account List:", account_list)
-#         match type:
-#             case 1:
-#                 return
-#             case 2:
-#                 post_video_tencent(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-#                                    start_days)
-#             case 3:
-#                 post_video_DouYin(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-#                           start_days, productLink, productTitle)
-#             case 4:
-#                 print(f'[+] Batch publishing to KuaiShou')
-#                 # KuaiShou
-#                 post_video_ks(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-#                           start_days)
-#             case 5:
-#                 print(f'[+] Batch publishing to TikTok')
-#                 # TikTok
-#                 post_video_TikTok(title, file_list, tags, account_list, enableTimer, videos_per_day, daily_times, start_days)
-#             case 6:
-#                 print(f'[+] Batch publishing to Instagram')
-#                 # Instagram
-#                 post_video_Instagram(title, file_list, tags, account_list, enableTimer, videos_per_day, daily_times, start_days)
-#             case 7:
-#                 print(f'[+] Batch publishing to Facebook')
-#                 # Facebook
-#                 post_video_Facebook(title, file_list, tags, account_list, enableTimer, videos_per_day, daily_times, start_days)
-#             case 8:
-#                 print(f'[+] Batch publishing to Bilibili')
-#                 # Bilibili发布，使用新的post_file函数
-#                 post_file("bilibili", account_list, 2, file_list, title, text, tags, "", 1, enableTimer, videos_per_day, daily_times, start_days)
-#             case 9:
-#                 print(f'[+] Batch publishing to Baijiahao')
-#                 # Baijiahao发布，使用新的post_file函数
-#                 post_file("baijiahao", account_list, 2, file_list, title, text, tags, "", 1, enableTimer, videos_per_day, daily_times, start_days)
-#     # 返回响应给客户端
-#     return jsonify(
-#         {
-#             "code": 200,
-#             "msg": None,
-#             "data": None
-#         }), 200
-
-# Cookie文件上传API
-@app.route('/uploadCookie', methods=['POST'])
-def upload_cookie():
-    try:
-        if 'file' not in request.files:
-            return jsonify({
-                "code": 500,
-                "msg": "没有找到Cookie文件",
-                "data": None
-            }), 400
-
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({
-                "code": 500,
-                "msg": "Cookie文件名不能为空",
-                "data": None
-            }), 400
-
-        if not file.filename.endswith('.json'):
-            return jsonify({
-                "code": 500,
-                "msg": "Cookie文件必须是JSON格式",
-                "data": None
-            }), 400
-
-        # 获取账号信息
-        account_id = request.form.get('id')
-        platform = request.form.get('platform')
-
-        if not account_id or not platform:
-            return jsonify({
-                "code": 500,
-                "msg": "缺少账号ID或平台信息",
-                "data": None
-            }), 400
-
-        # 从数据库获取账号的文件路径
-        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute('SELECT filePath FROM user_info WHERE id = ?', (account_id,))
-            result = cursor.fetchone()
-
-        if not result:
-            return jsonify({
-                "code": 500,
-                "msg": "账号不存在",
-                "data": None
-            }), 404
-
-        # 保存上传的Cookie文件到对应路径
-        cookie_file_path = Path(BASE_DIR / "cookiesFile" / result['filePath'])
-        cookie_file_path.parent.mkdir(parents=True, exist_ok=True)
-
-        file.save(str(cookie_file_path))
-
-        # 更新数据库中的账号信息（可选，比如更新更新时间）
-        # 这里可以根据需要添加额外的处理逻辑
-
-        return jsonify({
-            "code": 200,
-            "msg": "Cookie文件上传成功",
-            "data": None
-        }), 200
-
-    except Exception as e:
-        print(f"上传Cookie文件时出错: {str(e)}")
-        return jsonify({
-            "code": 500,
-            "msg": f"上传Cookie文件失败: {str(e)}",
-            "data": None
-        }), 500
-
-
-# Cookie文件下载API
-@app.route('/downloadCookie', methods=['GET'])
-def download_cookie():
-    try:
-        file_path = request.args.get('filePath')
-        if not file_path:
-            return jsonify({
-                "code": 500,
-                "msg": "缺少文件路径参数",
-                "data": None
-            }), 400
-
-        # 验证文件路径的安全性，防止路径遍历攻击
-        cookie_file_path = Path(BASE_DIR / "cookiesFile" / file_path).resolve()
-        base_path = Path(BASE_DIR / "cookiesFile").resolve()
-
-        if not cookie_file_path.is_relative_to(base_path):
-            return jsonify({
-                "code": 500,
-                "msg": "非法文件路径",
-                "data": None
-            }), 400
-
-        if not cookie_file_path.exists():
-            return jsonify({
-                "code": 500,
-                "msg": "Cookie文件不存在",
-                "data": None
-            }), 404
-
-        # 返回文件
-        return send_from_directory(
-            directory=str(cookie_file_path.parent),
-            path=cookie_file_path.name,
-            as_attachment=True
-        )
-
-    except Exception as e:
-        print(f"下载Cookie文件时出错: {str(e)}")
-        return jsonify({
-            "code": 500,
-            "msg": f"下载Cookie文件失败: {str(e)}",
-            "data": None
-        }), 500
-
-
-# 访问平台个人中心API
-@app.route('/getPlatformHomepage', methods=['GET'])
-async def get_platform_homepage():
-    try:
-        # 获取账号ID
-        account_id = request.args.get('id')
-        if not account_id:
-            return jsonify({
-                "code": 400,
-                "msg": "缺少账号ID参数",
-                "data": None
-            }), 400
-
-        # 从数据库获取账号信息
-        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute('SELECT filePath, type FROM user_info WHERE id = ?', (account_id,))
-            result = cursor.fetchone()
-
-        if not result:
-            return jsonify({
-                "code": 404,
-                "msg": "账号不存在",
-                "data": None
-            }), 404
-
-        file_path = result['filePath']
-        platform_type = result['type']
-
-        # 验证cookie文件是否存在
-        cookie_file_path = Path(BASE_DIR / "cookiesFile" / file_path)
-        if not cookie_file_path.exists():
-            return jsonify({
-                "code": 400,
-                "msg": "Cookie文件不存在",
-                "data": None
-            }), 400
-
-        # 获取平台配置
-        platform_key = get_platform_key_by_type(platform_type)
-        if not platform_key or platform_key not in PLATFORM_CONFIGS:
-            return jsonify({
-                "code": 400,
-                "msg": "平台配置不存在",
-                "data": None
-            }), 400
-
-        platform_config = PLATFORM_CONFIGS[platform_key]
-        personal_url = platform_config.get('personal_url')
-        if not personal_url:
-            return jsonify({
-                "code": 400,
-                "msg": "平台个人中心URL未配置",
-                "data": None
-            }), 400
-
-        # 使用playwright携带cookie访问个人中心
-        from playwright.async_api import async_playwright
-
-        # 初始化playwright实例
-        p = await async_playwright().start()
-        
-        # 启动浏览器
-        browser = await p.chromium.launch(
-            headless=False,
-            executable_path=LOCAL_CHROME_PATH
-        )
-        
-        # 创建上下文并加载cookie
-        context = await browser.new_context(storage_state=str(cookie_file_path))
-        
-        # 创建新页面并访问个人中心
-        page = await context.new_page()
-        await page.goto(personal_url, wait_until='domcontentloaded', timeout=30000)
-        
-        # 获取页面标题
-        page_title = await page.title()
-        print(f"页面标题: {page_title}")
-        
-        # 不关闭浏览器，等待用户主动关闭
-        # 注意：这里不会自动关闭浏览器和playwright实例，需要用户手动关闭浏览器窗口
-        # 浏览器关闭后，playwright实例会自动清理
-
-
-
-        return jsonify({
-            "code": 200,
-            "msg": "访问成功",
-            "data": {
-                "platform": platform_key,
-                "personal_url": personal_url,
-                "page_title": page_title
-            }
-        }), 200
-
-    except Exception as e:
-        print(f"访问平台个人中心失败: {str(e)}")
-        return jsonify({
-            "code": 500,
-            "msg": f"访问平台个人中心失败: {str(e)}",
-            "data": None
-        }), 500
-
 
 # 批量发布多个文件到多个平台
 @app.route('/postVideosToMultiplePlatforms', methods=['POST'])
@@ -1705,142 +1502,6 @@ def post_videos_to_multiple_platforms():
             "msg": f"发布视频到多个平台失败: {str(e)}",
             "data": None
         }), 500
-
-
-# 包装函数：在线程中运行异步函数
-def run_async_function(type,id,status_queue):
-    match type:
-        case '1':
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(xiaohongshu_cookie_gen(id, status_queue))
-            loop.close()
-        case '2':
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(get_tencent_cookie(id,status_queue))
-            loop.close()
-        case '3':
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(douyin_cookie_gen(id,status_queue))
-            loop.close()
-        case '4':
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(get_ks_cookie(id,status_queue))
-            loop.close()
-        case '5':
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(get_tiktok_cookie(id,status_queue))
-            loop.close()
-        case '6':
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(get_instagram_cookie(id,status_queue))
-            loop.close()
-        case '7':
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(get_facebook_cookie(id,status_queue))
-            loop.close()
-        case '8':
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(get_bilibili_cookie(id,status_queue))
-            loop.close()
-        case '9':
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(get_baijiahao_cookie(id,status_queue))
-            loop.close()
-
-# SSE 流生成器函数
-def sse_stream(status_queue):
-    while True:
-        if not status_queue.empty():
-            msg = status_queue.get()
-            yield f"data: {msg}\n\n"
-        else:
-            # 避免 CPU 占满
-            time.sleep(0.1)
-
-# # 重新登录API
-# @app.route('/reLogin', methods=['GET'])
-# async def reLogin():
-#     try:
-#         # 获取账号ID
-#         account_id = request.args.get('id')
-#         if not account_id:
-#             return jsonify({
-#                 "code": 400,
-#                 "msg": "缺少账号ID参数",
-#                 "data": None
-#             }), 400
-#
-#         # 从数据库获取账号信息
-#         with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
-#             conn.row_factory = sqlite3.Row
-#             cursor = conn.cursor()
-#             cursor.execute('SELECT filePath, type, userName FROM user_info WHERE id = ?', (account_id,))
-#             result = cursor.fetchone()
-#
-#         if not result:
-#             return jsonify({
-#                 "code": 404,
-#                 "msg": "账号不存在",
-#                 "data": None
-#             }), 404
-#
-#         file_path = result['filePath']
-#         platform_type = result['type']
-#         user_name = result['userName']
-#
-#         # 删除数据库中的该账号
-#         delete_account(account_id)
-#
-#         # 调用对应平台的cookie生成函数，重新生成账号信息
-#         match platform_type:
-#             case 1:  # 小红书
-#                 await xiaohongshu_cookie_gen(account_id,LOCAL_CHROME_PATH, file_path)
-#             case 2:  # 视频号
-#                 await get_tencent_cookie(account_id,LOCAL_CHROME_PATH, file_path)
-#             case 3:  # 抖音
-#                 await douyin_cookie_gen(account_id,LOCAL_CHROME_PATH, file_path)
-#             case 4:  # 快手
-#                 await get_ks_cookie(account_id,LOCAL_CHROME_PATH, file_path)
-#             case 5:  # TikTok
-#                 await get_tiktok_cookie(account_id,LOCAL_CHROME_PATH, file_path)
-#             case 6:  # Instagram
-#                 await get_instagram_cookie(account_id,LOCAL_CHROME_PATH, file_path)
-#             case 7:  # Facebook
-#                 await get_facebook_cookie(account_id,LOCAL_CHROME_PATH, file_path)
-#             case 8:  # Bilibili
-#                 await get_bilibili_cookie(account_id,LOCAL_CHROME_PATH, file_path)
-#             case 9:  # Baijiahao
-#                 await get_baijiahao_cookie(account_id,LOCAL_CHROME_PATH, file_path)
-#             case _:
-#                 return jsonify({
-#                     "code": 400,
-#                     "msg": "不支持的平台类型",
-#                     "data": None
-#                 }), 400
-#
-#
-#
-#         return jsonify({
-#             "code": 200,
-#             "msg": f"账号 {user_name} 重新登录成功",
-#             "data": None
-#         }), 200
-#     except Exception as e:
-#         print(f"重新登录失败: {str(e)}")
-#         return jsonify({
-#             "code": 500,
-#             "msg": f"重新登录失败: {str(e)}",
-#             "data": None
-#         }), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0' ,port=5409)
