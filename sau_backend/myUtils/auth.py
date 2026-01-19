@@ -9,6 +9,18 @@ from utils.log import create_logger
 from pathlib import Path
 from newFileUpload.platform_configs import PLATFORM_CONFIGS
 
+async def check_cookie(type, file_path):
+    """
+    根据平台类型验证Cookie有效性
+    Args:
+        type: 平台类型 (1:小红书, 2:腾讯视频号, 3:抖音, 4:快手, 5:TikTok, 6:Instagram, 7:Facebook, 8:Bilibili, 9:Baijiahao)
+        file_path: Cookie文件路径
+    Returns:
+        bool: Cookie是否有效
+    """
+    # 使用通用检测方法
+    return await check_cookie_generic(type, file_path)
+
 async def check_cookie_generic(type, file_path):
     """
     通用的Cookie有效性验证方法
@@ -90,19 +102,6 @@ async def check_cookie_generic(type, file_path):
     except Exception as e:
         logger.error(f"[{platform_name}] 检测账号有效性时出错: {str(e)}")
         return False
-
-async def check_cookie(type, file_path):
-    """
-    根据平台类型验证Cookie有效性
-    Args:
-        type: 平台类型 (1:小红书, 2:腾讯视频号, 3:抖音, 4:快手, 5:TikTok, 6:Instagram, 7:Facebook, 8:Bilibili, 9:Baijiahao)
-        file_path: Cookie文件路径
-    Returns:
-        bool: Cookie是否有效
-    """
-    # 使用通用检测方法
-    return await check_cookie_generic(type, file_path)
-
 
 # async def cookie_auth_douyin(account_file):
 #     async with async_playwright() as playwright:
