@@ -637,10 +637,6 @@ MPP 系统采用模块化设计，新增平台支持非常简单，只需修改 
 - 增加系统内存和 CPU 资源
 - 优化网络连接
 
-### 5. 如何切换上传版本？
-
-系统默认使用新版上传系统。如果需要使用旧版上传系统，您可以在代码中修改相关配置。
-
 ## 贡献指南
 
 我们欢迎社区贡献，包括但不限于：
@@ -693,40 +689,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## 联系方式
-
+## 交流与支持
 - **GitHub Issues**：[https://github.com/fan-0517/MPP/issues](https://github.com/fan-0517/MPP/issues)
 - **Email**：1424393744@qq.com
 
-## 更新日志
-
-### v1.0.0 (2026-01-13)
-
-- ✨ 初始版本发布，基于 SAU 项目
-- ✅ 支持小红书、腾讯视频号、抖音、快手、TikTok、Instagram 平台
-- ✅ 实现视频和图文发布功能
-- ✅ 支持定时发布和批量发布
-- ✅ 提供完整的 Web 管理界面
-- ✅ 实现新版文件上传系统（通用基类 + 平台配置）
-- ✅ 保留旧版文件上传系统作为备用
-
-### v1.0.1 (2026-01-15)
-
-- 📚 完善项目文档，更新 README 结构和内容
-- 🔧 优化 API 接口文档，添加详细的参数说明
-- 🎨 改进前端界面，优化用户体验
-- ⚡ 优化后端性能，提高发布效率
-- 🔒 增强系统安全性，完善错误处理
-
-### v1.0.2 (2026-01-15)
-
-- 🔄 项目重命名为 MPP (MediaPublishPlatform)
-- 📝 更新项目文档和引用
-- ✅ 完善 B站和百家号平台支持
-- ✅ 增强发布任务记录查询功能
-
----
-
+## Star-History
 **感谢使用 MPP 自媒体发布平台！** 🚀
+如果这个项目对您有帮助，请给一个 ⭐ Star 以表示支持！
 
-如果您觉得这个项目对您有帮助，请给我们一个 ⭐️ 支持一下！
+<div align="center">
+  <a href="https://star-history.com/#dreammis/MPP&Date">
+    <img src="https://api.star-history.com/svg?repos=dreammis/MPP&type=Date" alt="Star History Chart" width="800" />
+  </a>
+</div>
