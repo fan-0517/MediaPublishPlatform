@@ -88,38 +88,56 @@ async def unified_login_cookie_gen(type, id, status_queue):
             # 等待登录完成（检测cookie是否包含登录信息或URL是否变化）
             login_wait_timeout = 300000  # 5分钟登录超时
             start_time = time.time()
+            
+            # 获取初始URL，用于后续比较
+            initial_url = page.url
+            print(f"初始URL: {initial_url}")
+            
+            # 标记是否检测到登录成功
+            login_successful = False
 
             while time.time() - start_time < login_wait_timeout:
                 # 检查是否已登录（通过检查URL是否包含登录后的特征或cookie是否包含登录信息）
                 current_url = page.url
                 print(f"当前URL: {current_url}")
                 cookies = await context.cookies()
+                
+                # 打印当前cookie信息，用于调试
+                cookie_names = [cookie.get("name") for cookie in cookies]
+                print(f"当前cookie名称: {cookie_names}")
 
-                # 简单判断：如果URL不再是登录页，或者cookie中包含认证信息，认为登录成功
-                if "login" not in current_url.lower() or any(cookie.get("name") in ["session", "token", "cookie", "auth"] for cookie in cookies):
+                # 其他平台的原有检测逻辑
+                if "login" not in current_url.lower():
+                    login_successful = True
                     break
-
                 await asyncio.sleep(5)  # 每5秒检查一次
+            
+            # 如果检测到登录成功，才保存cookie和插入数据库
+            if login_successful:
+                # 保存cookie
+                await context.storage_state(path=str(cookie_file_path))
+                status_queue.put(f'{{"code": 200, "msg": "Cookie已保存", "data": null}}')
+                print(f"✅ 成功保存cookies文件: {cookie_file_path}")
 
-            # 保存cookie
-            await context.storage_state(path=str(cookie_file_path))
-            status_queue.put(f'{{"code": 200, "msg": "Cookie已保存", "data": null}}')
-            print(f"✅ 成功保存cookies文件: {cookie_file_path}")
+                # 关闭浏览器
+                await context.close()
+                await browser.close()
 
-            # 关闭浏览器
-            await context.close()
-            await browser.close()
+                # 将账号信息插入数据库
+                with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                        INSERT INTO user_info (type, userName, filePath, status)
+                        VALUES (?, ?, ?, ?)
+                    ''', (type, id, cookie_file, 1))
+                    conn.commit()
 
-        # 将账号信息插入数据库
-        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT INTO user_info (type, userName, filePath, status)
-                VALUES (?, ?, ?, ?)
-            ''', (type, id, cookie_file, 1))
-            conn.commit()
-
-        status_queue.put(f'{{"code": 200, "msg": "登录成功", "data": null}}')
+                status_queue.put(f'{{"code": 200, "msg": "登录成功", "data": null}}')
+            else:
+                # 登录超时或失败
+                await context.close()
+                await browser.close()
+                status_queue.put(f'{{"code": 500, "msg": "登录超时或失败，请检查网络连接或手动登录", "data": null}}')
 
     except Exception as e:
         print(f"统一登录失败: {str(e)}")

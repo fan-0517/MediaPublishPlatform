@@ -1308,51 +1308,51 @@ const connectSSE = (platform, name) => {
       console.log('解析后的JSON数据:', jsonData)
       
       // 处理登录状态
-      if (jsonData.code === 200) {
-        loginStatus.value = '200'
-        
-        // 如果登录成功且包含成功消息
-        if (jsonData.msg.includes('登录成功') || jsonData.msg.includes('Cookie已保存')) {
-          setTimeout(() => {
-            // 关闭连接
+          if (jsonData.code === 200) {
+            loginStatus.value = '200'
+            
+            // 只在收到"登录成功"消息时才关闭对话框，确保整个流程完成
+            if (jsonData.msg.includes('登录成功')) {
+              setTimeout(() => {
+                // 关闭连接
+                closeSSEConnection()
+
+                // 1秒后关闭对话框并开始刷新
+                setTimeout(() => {
+                  dialogVisible.value = false
+                  sseConnecting.value = false
+
+                  // 根据是否是重新登录显示不同提示
+                  ElMessage.success(dialogType.value === 'edit' ? '重新登录成功' : '账号添加成功')
+
+                  // 显示更新账号信息提示
+                  ElMessage({
+                    type: 'info',
+                    message: '正在同步账号信息...',
+                    duration: 0
+                  })
+
+                  // 触发刷新操作
+                  fetchAccounts().then(() => {
+                    // 刷新完成后关闭提示
+                    ElMessage.closeAll()
+                    ElMessage.success('账号信息已更新')
+                  })
+                }, 1000)
+              }, 1000)
+            }
+          } else if (jsonData.code === 500) {
+            loginStatus.value = '500'
+            // 登录失败，关闭连接
             closeSSEConnection()
 
-            // 1秒后关闭对话框并开始刷新
+            // 2秒后重置状态，允许重试
             setTimeout(() => {
-              dialogVisible.value = false
               sseConnecting.value = false
-
-              // 根据是否是重新登录显示不同提示
-              ElMessage.success(dialogType.value === 'edit' ? '重新登录成功' : '账号添加成功')
-
-              // 显示更新账号信息提示
-              ElMessage({
-                type: 'info',
-                message: '正在同步账号信息...',
-                duration: 0
-              })
-
-              // 触发刷新操作
-              fetchAccounts().then(() => {
-                // 刷新完成后关闭提示
-                ElMessage.closeAll()
-                ElMessage.success('账号信息已更新')
-              })
-            }, 1000)
-          }, 1000)
-        }
-      } else if (jsonData.code === 500) {
-        loginStatus.value = '500'
-        // 登录失败，关闭连接
-        closeSSEConnection()
-
-        // 2秒后重置状态，允许重试
-        setTimeout(() => {
-          sseConnecting.value = false
-          qrCodeData.value = ''
-          loginStatus.value = ''
-        }, 2000)
-      }
+              qrCodeData.value = ''
+              loginStatus.value = ''
+            }, 2000)
+          }
     } catch (e) {
       // 如果不是JSON数据，检查是否是二维码数据
       if (!qrCodeData.value && data.length > 100) {
