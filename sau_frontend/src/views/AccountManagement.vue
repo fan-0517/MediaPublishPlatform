@@ -1302,56 +1302,47 @@ const connectSSE = (platform, name) => {
     const data = event.data
     console.log('SSE消息:', data)
 
-    // 如果还没有二维码数据，且数据长度较长，认为是二维码
-    if (!qrCodeData.value && data.length > 100) {
-      try {
-        // 确保数据是有效的base64编码
-        // 如果数据已经包含了data:image前缀，直接使用
-        if (data.startsWith('data:image')) {
-          qrCodeData.value = data
-        } else {
-          // 否则添加前缀
-          qrCodeData.value = `data:image/png;base64,${data}`
-        }
-        console.log('设置二维码数据，长度:', data.length)
-      } catch (error) {
-        console.error('处理二维码数据出错:', error)
-      }
-    }
-    // 如果收到状态码
-    else if (data === '200' || data === '500') {
-      loginStatus.value = data
-
-      // 如果登录成功
-      if (data === '200') {
-        setTimeout(() => {
-          // 关闭连接
-          closeSSEConnection()
-
-          // 1秒后关闭对话框并开始刷新
+    // 尝试解析JSON数据
+    try {
+      const jsonData = JSON.parse(data)
+      console.log('解析后的JSON数据:', jsonData)
+      
+      // 处理登录状态
+      if (jsonData.code === 200) {
+        loginStatus.value = '200'
+        
+        // 如果登录成功且包含成功消息
+        if (jsonData.msg.includes('登录成功') || jsonData.msg.includes('Cookie已保存')) {
           setTimeout(() => {
-            dialogVisible.value = false
-            sseConnecting.value = false
+            // 关闭连接
+            closeSSEConnection()
 
-            // 根据是否是重新登录显示不同提示
-            ElMessage.success(dialogType.value === 'edit' ? '重新登录成功' : '账号添加成功')
+            // 1秒后关闭对话框并开始刷新
+            setTimeout(() => {
+              dialogVisible.value = false
+              sseConnecting.value = false
 
-            // 显示更新账号信息提示
-            ElMessage({
-              type: 'info',
-              message: '正在同步账号信息...',
-              duration: 0
-            })
+              // 根据是否是重新登录显示不同提示
+              ElMessage.success(dialogType.value === 'edit' ? '重新登录成功' : '账号添加成功')
 
-            // 触发刷新操作
-            fetchAccounts().then(() => {
-              // 刷新完成后关闭提示
-              ElMessage.closeAll()
-              ElMessage.success('账号信息已更新')
-            })
+              // 显示更新账号信息提示
+              ElMessage({
+                type: 'info',
+                message: '正在同步账号信息...',
+                duration: 0
+              })
+
+              // 触发刷新操作
+              fetchAccounts().then(() => {
+                // 刷新完成后关闭提示
+                ElMessage.closeAll()
+                ElMessage.success('账号信息已更新')
+              })
+            }, 1000)
           }, 1000)
-        }, 1000)
-      } else {
+        }
+      } else if (jsonData.code === 500) {
+        loginStatus.value = '500'
         // 登录失败，关闭连接
         closeSSEConnection()
 
@@ -1361,6 +1352,23 @@ const connectSSE = (platform, name) => {
           qrCodeData.value = ''
           loginStatus.value = ''
         }, 2000)
+      }
+    } catch (e) {
+      // 如果不是JSON数据，检查是否是二维码数据
+      if (!qrCodeData.value && data.length > 100) {
+        try {
+          // 确保数据是有效的base64编码
+          // 如果数据已经包含了data:image前缀，直接使用
+          if (data.startsWith('data:image')) {
+            qrCodeData.value = data
+          } else {
+            // 否则添加前缀
+            qrCodeData.value = `data:image/png;base64,${data}`
+          }
+          console.log('设置二维码数据，长度:', data.length)
+        } catch (error) {
+          console.error('处理二维码数据出错:', error)
+        }
       }
     }
   }

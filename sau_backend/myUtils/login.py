@@ -1,9 +1,12 @@
 import asyncio
 import sqlite3
+import time
 from playwright.async_api import async_playwright
 from utils.base_social_media import set_init_script
 from pathlib import Path
-from conf import BASE_DIR
+from conf import BASE_DIR, LOCAL_CHROME_PATH
+from newFileUpload.platform_configs import get_platform_key_by_type, PLATFORM_CONFIGS
+
 
 
 # 统一登录异步处理函数
@@ -89,6 +92,7 @@ async def unified_login_cookie_gen(type, id, status_queue):
             while time.time() - start_time < login_wait_timeout:
                 # 检查是否已登录（通过检查URL是否包含登录后的特征或cookie是否包含登录信息）
                 current_url = page.url
+                print(f"当前URL: {current_url}")
                 cookies = await context.cookies()
 
                 # 简单判断：如果URL不再是登录页，或者cookie中包含认证信息，认为登录成功
@@ -100,6 +104,7 @@ async def unified_login_cookie_gen(type, id, status_queue):
             # 保存cookie
             await context.storage_state(path=str(cookie_file_path))
             status_queue.put(f'{{"code": 200, "msg": "Cookie已保存", "data": null}}')
+            print(f"✅ 成功保存cookies文件: {cookie_file_path}")
 
             # 关闭浏览器
             await context.close()
