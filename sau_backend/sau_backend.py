@@ -10,9 +10,8 @@ from flask_cors import CORS
 from conf import BASE_DIR, LOCAL_CHROME_PATH
 from myUtils.auth import check_cookie
 from flask import Flask, request, jsonify, Response, send_from_directory
-from myUtils.login import douyin_cookie_gen, get_tencent_cookie, get_ks_cookie, xiaohongshu_cookie_gen, get_tiktok_cookie, get_instagram_cookie, get_facebook_cookie, get_bilibili_cookie, get_baijiahao_cookie, delete_account
-from newFileUpload.multiFileUploader import post_file, post_multiple_files_to_multiple_platforms, post_single_file_to_multiple_platforms
-from utils.base_social_media import set_init_script
+from myUtils.login import run_unified_login, delete_account
+from newFileUpload.multiFileUploader import post_file, post_multiple_files_to_multiple_platforms
 from newFileUpload.platform_configs import get_platform_key_by_type, get_type_by_platform_key, PLATFORM_CONFIGS
 
 active_queues = {}
@@ -555,154 +554,42 @@ def login_unified():
     response.headers['Connection'] = 'keep-alive'
     return response
 
-# 统一登录异步处理函数
-def run_unified_login(type, id, status_queue):
-    """
-    统一登录异步处理函数
-    参数：
-        type: 平台类型编号
-        id: 账号名
-        status_queue: 状态队列，用于返回登录状态
-    """
-    try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(unified_login_cookie_gen(type, id, status_queue))
-        loop.close()
-    except Exception as e:
-        print(f"统一登录失败: {str(e)}")
-        status_queue.put(f'{{"code": 500, "msg": "登录失败: {str(e)}", "data": null}}')
 
-# 统一登录cookie生成函数
-async def unified_login_cookie_gen(type, id, status_queue):
-    """
-    统一登录cookie生成函数
-    参数：
-        type: 平台类型编号
-        id: 账号名
-        status_queue: 状态队列，用于返回登录状态
-    """
-    try:
-        # 获取平台key
-        platform_key = get_platform_key_by_type(int(type))
-        if not platform_key:
-            status_queue.put(f'{{"code": 400, "msg": "不支持的平台类型", "data": null}}')
-            return
-        
-        # 获取平台配置
-        platform_config = PLATFORM_CONFIGS.get(platform_key)
-        if not platform_config:
-            status_queue.put(f'{{"code": 400, "msg": "平台配置不存在", "data": null}}')
-            return
-        
-        # 生成cookie文件路径
-        cookie_file = f"{platform_key}_cookie_{id}.json"
-        cookie_file_path = Path(BASE_DIR / "cookiesFile" / cookie_file)
-        
-        # 创建cookiesFile目录（如果不存在）
-        cookie_file_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # 使用Playwright进行登录
-        async with async_playwright() as playwright:
-            options = {
-                'args': [
-                    f'--lang en-US',
-                    '--no-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-gpu',
-                    '--ignore-certificate-errors',
-                    '--start-maximized',
-                    '--disable-blink-features=AutomationControlled'
-                ],
-                'headless': False,  # 登录时需要可视化
-                'executable_path': LOCAL_CHROME_PATH,
-            }
-            
-            # 启动浏览器
-            browser = await playwright.chromium.launch(**options)
-            # 创建上下文
-            context = await browser.new_context()
-            context = await set_init_script(context)
-            
-            # 创建页面
-            page = await context.new_page()
-            await page.goto(platform_config["login_url"], wait_until='domcontentloaded', timeout=60000)
-            
-            # 等待用户登录完成
-            status_queue.put(f'{{"code": 200, "msg": "请在浏览器中登录{platform_config["platform_name"]}账号", "data": null}}')
-            
-            # 等待登录完成（检测cookie是否包含登录信息或URL是否变化）
-            login_wait_timeout = 300000  # 5分钟登录超时
-            start_time = time.time()
-            
-            while time.time() - start_time < login_wait_timeout:
-                # 检查是否已登录（通过检查URL是否包含登录后的特征或cookie是否包含登录信息）
-                current_url = page.url
-                cookies = await context.cookies()
-                
-                # 简单判断：如果URL不再是登录页，或者cookie中包含认证信息，认为登录成功
-                if "login" not in current_url.lower() or any(cookie.get("name") in ["session", "token", "cookie", "auth"] for cookie in cookies):
-                    break
-                
-                await asyncio.sleep(5)  # 每5秒检查一次
-            
-            # 保存cookie
-            await context.storage_state(path=str(cookie_file_path))
-            status_queue.put(f'{{"code": 200, "msg": "Cookie已保存", "data": null}}')
-            
-            # 关闭浏览器
-            await context.close()
-            await browser.close()
-        
-        # 将账号信息插入数据库
-        with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT INTO user_info (type, userName, filePath, status)
-                VALUES (?, ?, ?, ?)
-            ''', (type, id, cookie_file, 1))
-            conn.commit()
-        
-        status_queue.put(f'{{"code": 200, "msg": "登录成功", "data": null}}')
-        
-    except Exception as e:
-        print(f"统一登录失败: {str(e)}")
-        status_queue.put(f'{{"code": 500, "msg": "登录失败: {str(e)}", "data": null}}')
 
-# SSE 登录接口
-@app.route('/login_old')
-def login():
-    type = request.args.get('type')
-    # 账号名
-    id = request.args.get('id')
-    #如果账号名已存在，查找原有账户的id，并删除原有记录
-    with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        cursor.execute('SELECT id FROM user_info WHERE userName = ? AND type = ?', (id, type))
-        row = cursor.fetchone()
-        if row:
-            account_id = row['id']
-            # 删除数据库中的原账号
-            print(f"删除原账号ID: {account_id}")
-            delete_account(account_id)
-
-    # 模拟一个用于异步通信的队列
-    status_queue = Queue()
-    active_queues[id] = status_queue
-
-    def on_close():
-        print(f"清理队列: {id}")
-        del active_queues[id]
-    # 启动异步任务线程
-    thread = threading.Thread(target=run_async_function, args=(type,id,status_queue), daemon=True)
-    thread.start()
-    response = Response(sse_stream(status_queue,), mimetype='text/event-stream')
-    response.headers['Cache-Control'] = 'no-cache'
-    response.headers['X-Accel-Buffering'] = 'no'  # 关键：禁用 Nginx 缓冲
-    response.headers['Content-Type'] = 'text/event-stream'
-    response.headers['Connection'] = 'keep-alive'
-    return response
+# # SSE 登录接口旧版
+# @app.route('/login_old')
+# def login():
+#     type = request.args.get('type')
+#     # 账号名
+#     id = request.args.get('id')
+#     #如果账号名已存在，查找原有账户的id，并删除原有记录
+#     with sqlite3.connect(Path(BASE_DIR / "db" / "database.db")) as conn:
+#         conn.row_factory = sqlite3.Row
+#         cursor = conn.cursor()
+#         cursor.execute('SELECT id FROM user_info WHERE userName = ? AND type = ?', (id, type))
+#         row = cursor.fetchone()
+#         if row:
+#             account_id = row['id']
+#             # 删除数据库中的原账号
+#             print(f"删除原账号ID: {account_id}")
+#             delete_account(account_id)
+#
+#     # 模拟一个用于异步通信的队列
+#     status_queue = Queue()
+#     active_queues[id] = status_queue
+#
+#     def on_close():
+#         print(f"清理队列: {id}")
+#         del active_queues[id]
+#     # 启动异步任务线程
+#     thread = threading.Thread(target=run_async_function, args=(type,id,status_queue), daemon=True)
+#     thread.start()
+#     response = Response(sse_stream(status_queue,), mimetype='text/event-stream')
+#     response.headers['Cache-Control'] = 'no-cache'
+#     response.headers['X-Accel-Buffering'] = 'no'  # 关键：禁用 Nginx 缓冲
+#     response.headers['Content-Type'] = 'text/event-stream'
+#     response.headers['Connection'] = 'keep-alive'
+#     return response
 
 # 获取发布任务记录
 @app.route('/getPublishTaskRecords', methods=['GET'])
